@@ -4,7 +4,7 @@ import borg_parser
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T1b_FEs400_8Traces_noConstraints/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial5.31/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -65,17 +65,19 @@ def main():
     runtime.set_objective_names(objective_names)
     runtime.set_metric_names(metric_names)
 
-    # Interactive parallel
-    exp = runtime.plot_interactive_front()
-    exp.to_html("borgRW_front.html")
-
     # Improvements
-    # fig = runtime.plot_improvements()
-    # fig.savefig("borgRW_improvements.jpg")
+    fig = runtime.plot_improvements()
+    fig.savefig("borgRW_improvements.jpg")
 
     # Objectives
     obj_plot = runtime.plot_objectives_parcoord()
     obj_plot.to_html("borgRW_objectives.html")
+
+    # Hypervolume
+    #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
+    reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
+    hv_plot = runtime.plot_hypervolume(reference)
+    hv_plot.savefig("borgRW_hypervolume.jpg")
 
 if __name__ == '__main__':
     main()

@@ -5,7 +5,7 @@ import numpy as np
 from more_itertools import consecutive_groups
 import matplotlib.pyplot as plt
 import seaborn as sns
-# import pygmo
+import pygmo
 import hiplot as hip
 sns.set()
 
@@ -225,26 +225,26 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         """
         self.metric_names = metric_names
 
-    # def compute_hypervolume(self, reference_point):
-    #     """Compute hypervolumes
-    #     Parameters
-    #     ----------
-    #     reference_point : list
-    #         Reference point for hypervolume calculation. Length must be same
-    #          as objectives
-    #     """
-    #     # Setup
-    #     hypervolume_dict = {}
+    def compute_hypervolume(self, reference_point):
+        """Compute hypervolumes
+        Parameters
+        ----------
+        reference_point : list
+            Reference point for hypervolume calculation. Length must be same
+             as objectives
+        """
+        # Setup
+        hypervolume_dict = {}
 
-    #     for nfe, objs in self.archive_objectives.items():
-    #         # Compute hypervolume
-    #         hv = pygmo.hypervolume(objs)
-    #         hv_val = hv.compute(ref_point=reference_point)
+        for nfe, objs in self.archive_objectives.items():
+            # Compute hypervolume
+            hv = pygmo.hypervolume(objs)
+            hv_val = hv.compute(ref_point=reference_point)
 
-    #         # Store value
-    #         hypervolume_dict[nfe] = hv_val
+            # Store value
+            hypervolume_dict[nfe] = hv_val
 
-    #     self.hypervolume = hypervolume_dict
+        self.hypervolume = hypervolume_dict
 
     def plot_improvements(
         self,
@@ -308,38 +308,38 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return fig
 
-    # def plot_hypervolume(self, reference_point):
-    #     """
-    #     Plot hypervolume over the search
-    #     Parameters
-    #     ----------
-    #     reference_point : list
-    #         Reference point for hypervolume calculation
-    #     Returns
-    #     -------
-    #     matplotlib.figure.Figure
-    #         Plot of improvments
-    #     """
-    #     sns.set()
+    def plot_hypervolume(self, reference_point):
+        """
+        Plot hypervolume over the search
+        Parameters
+        ----------
+        reference_point : list
+            Reference point for hypervolume calculation
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Plot of improvments
+        """
+        sns.set()
 
-    #     # Computing hypervolume
-    #     self.compute_hypervolume(reference_point)
-    #     df_run = pd.DataFrame()
-    #     df_run['hypervolume'] = pd.Series(self.hypervolume)
-    #     df_run['nfe'] = df_run.index
+        # Computing hypervolume
+        self.compute_hypervolume(reference_point)
+        df_run = pd.DataFrame()
+        df_run['hypervolume'] = pd.Series(self.hypervolume)
+        df_run['nfe'] = df_run.index
 
-    #     # Plotting
-    #     fig, ax = plt.subplots()
-    #     sns.lineplot(
-    #         data=df_run,
-    #         x='nfe',
-    #         y='hypervolume',
-    #         ax=ax
-    #     )
-    #     plt.ylabel('Hypervolume')
-    #     plt.xlabel('Function Evaluations')
+        # Plotting
+        fig, ax = plt.subplots()
+        sns.lineplot(
+            data=df_run,
+            x='nfe',
+            y='hypervolume',
+            ax=ax
+        )
+        plt.ylabel('Hypervolume')
+        plt.xlabel('Function Evaluations')
 
-    #     return fig
+        return fig
 
     def plot_interactive_front(self):
         """
