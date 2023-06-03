@@ -383,7 +383,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return exp
 
-    def plot_objectives_parcoord(self):
+    def plot_objectives_parcoord(self, obj_ranges=None):
         """
         Create interactive parallel plot of objective values for archive solutions
         Returns
@@ -416,6 +416,12 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         exp.display_data(hip.Displays.TABLE).update(
             {'hide': ['uid', 'from_uid']}
         )
+
+        # Force axes ranges to same min/max; useful for comparing different plots
+        if obj_ranges is not None:
+            for name, low, high in obj_ranges:
+                exp.parameters_definition[name].force_range(low, high)
+
 
         return exp
 

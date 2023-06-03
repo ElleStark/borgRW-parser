@@ -4,7 +4,7 @@ import borg_parser
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial5.31/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial6.2/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -51,6 +51,21 @@ def main():
         "Max_Annual_LB_Shortage", "Max_Delta_Annual_Shortage",
         ]
 
+    # ranges used for parallel coordinates plotting
+    objective_ranges = [
+        ('Powell_3490', 0, 25), ('Powell_WY_Release', 8600000, 8780000),
+        ('Lee_Ferry_Deficit', 0, 15), ('Avg_Combo_Shortage', -13900000, -11200000),
+        ('Mead_1000', 0, 50), ('LB_Shortage_Volume', 940000, 1130000),
+        ('Max_Annual_LB_Shortage', 1400000, 2400000), ('Max_Delta_Annual_Shortage', 900000, 2400000)
+    ]
+
+# Very wide range of objectives:
+    # objective_ranges = [
+    #     ('Powell_3490', 0, 100), ('Powell_WY_Release', 8000000, 9500000),
+    #     ('Lee_Ferry_Deficit', 0, 100), ('Avg_Combo_Shortage', -21000000, -4000000),
+    #     ('Mead_1000', 0, 100), ('LB_Shortage_Volume', 500000, 1700000),
+    #     ('Max_Annual_LB_Shortage', 0, 2400000), ('Max_Delta_Annual_Shortage', 0, 2400000)
+    # ]
 
     metric_names = []
 
@@ -66,18 +81,25 @@ def main():
     runtime.set_metric_names(metric_names)
 
     # Improvements
-    fig = runtime.plot_improvements()
-    fig.savefig("borgRW_improvements.jpg")
+    #fig = runtime.plot_improvements()
+    #fig.savefig("borgRW_improvements.jpg")
 
     # Objectives
-    obj_plot = runtime.plot_objectives_parcoord()
+    obj_plot = runtime.plot_objectives_parcoord(objective_ranges)
     obj_plot.to_html("borgRW_objectives.html")
+
+    # Test
+    # for name, low, high in objective_ranges:
+    #     print('name: ', name)
+    #     print('min: ', low)
+    #     print('max: ', high)
+
 
     # Hypervolume
     #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
-    reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
-    hv_plot = runtime.plot_hypervolume(reference)
-    hv_plot.savefig("borgRW_hypervolume.jpg")
+    #reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
+    #hv_plot = runtime.plot_hypervolume(reference)
+    #hv_plot.savefig("borgRW_hypervolume.jpg")
 
 if __name__ == '__main__':
     main()
