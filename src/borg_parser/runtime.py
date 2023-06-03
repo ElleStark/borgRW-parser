@@ -246,6 +246,46 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         self.hypervolume = hypervolume_dict
 
+    def compute_real_nadir(self):
+        """Compute realized nadir point (max of each objective value in set of solutions)
+        # see Blank and Deb 2020 for use of this metric as MOEA termination criterion
+        Parameters
+        ----------
+        """
+        # Setup
+        nadir_dict = {}
+
+        for nfe, objs in self.archive_objectives.items():
+            # Compute realized nadir point
+            #nadir = pygmo.nadir(objs)
+            hv = pygmo.hypervolume(objs)
+            nadir = hv.refpoint()
+            nadir_val = max(nadir)
+
+            # Store value
+            nadir_dict[nfe] = nadir_val
+
+        self.real_nadir = nadir_dict
+
+    def compute_real_ideal(self):
+        """Compute realized ideal point (min of each objective value in set of solutions)
+        # see Blank and Deb 2020 for use of this metric as MOEA termination criterion
+        Parameters
+        ----------
+        """
+        # Setup
+        ideal_dict = {}
+
+        for nfe, objs in self.archive_objectives.items():
+            # Compute realized nadir point
+            #nadir = pygmo.nadir(objs)
+            ideal = pygmo.ideal(objs)
+            ideal_val = max(ideal)
+
+            # Store value
+            ideal_dict[nfe] = ideal_val
+
+        self.real_ideal = ideal_dict
     def plot_improvements(
         self,
         y_lab='Improvements',
@@ -341,6 +381,67 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return fig
 
+    def plot_real_nadir(self):
+        """
+        Plot nadir point over the search
+        Parameters
+        ----------
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Plot of nadir point
+        """
+        sns.set()
+
+        # Computing nadir point
+        self.compute_real_nadir()
+        df_run = pd.DataFrame()
+        df_run['nadir'] = pd.Series(self.real_nadir)
+        df_run['nfe'] = df_run.index
+
+        # Plotting each dimension
+        fig, ax = plt.subplots()
+        sns.lineplot(
+            data=df_run,
+            x='nfe',
+            y='nadir',
+            ax=ax
+        )
+        plt.ylabel('Realized Nadir Point')
+        plt.xlabel('Function Evaluations')
+
+        return fig
+
+    def plot_real_ideal(self):
+        """
+        Plot ideal point over the search
+        Parameters
+        ----------
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Plot of ideal point
+        """
+        sns.set()
+
+        # Computing ideal point
+        self.compute_real_ideal()
+        df_run = pd.DataFrame()
+        df_run['ideal'] = pd.Series(self.real_ideal)
+        df_run['nfe'] = df_run.index
+
+        # Plotting each dimension
+        fig, ax = plt.subplots()
+        sns.lineplot(
+            data=df_run,
+            x='nfe',
+            y='ideal',
+            ax=ax
+        )
+        plt.ylabel('Realized Ideal Point')
+        plt.xlabel('Function Evaluations')
+
+        return fig
     def plot_interactive_front(self):
         """
         Create interactive parallel plot
@@ -476,6 +577,39 @@ class BorgRuntimeAggregator():
 
         return fig
 
+    # def plot_real_nadir(self):
+    #     """
+    #     Plot hypervolume over the search
+    #     Parameters
+    #     ----------
+    #     reference_point : list
+    #         Reference point for hypervolume calculation
+    #     Returns
+    #     -------
+    #     matplotlib.figure.Figure
+    #         Plot of improvments
+    #     """
+    #     # Setup
+    #     df_ls = []
+    #
+    #     # Computing hypervolume
+    #     for run_name, run_obj in self.runs.items():
+    #         df_run = pd.DataFrame()
+    #         run_obj.compute_real_nadir()
+    #         df_run['hypervolume'] = pd.Series(run_obj.hypervolume)
+    #         df_run['run_name'] = run_name
+    #         df_run['nfe'] = df_run.index
+    #         df_ls.append(df_run)
+    #     df = pd.concat(df_ls)
+    #
+    #     # Plotting
+    #     fig, ax = plt.subplots()
+    #     sns.lineplot(data=df, x='nfe', y='hypervolume', hue='run_name', ax=ax)
+    #     plt.ylabel('Hypervolume')
+    #     plt.xlabel('Function Evaluations')
+    #     ax.legend(title='Run')
+    #
+    #     return fig
     def plot_interactive_front(self):
         """
         Plot interactive front at final search

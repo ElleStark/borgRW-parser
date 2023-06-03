@@ -85,15 +85,12 @@ def main():
     #fig.savefig("borgRW_improvements.jpg")
 
     # Objectives
-    obj_plot = runtime.plot_objectives_parcoord(objective_ranges)
-    obj_plot.to_html("borgRW_objectives.html")
+    #obj_plot = runtime.plot_objectives_parcoord(objective_ranges)
+    #obj_plot.to_html("borgRW_objectives.html")
 
-    # Test
-    # for name, low, high in objective_ranges:
-    #     print('name: ', name)
-    #     print('min: ', low)
-    #     print('max: ', high)
-
+    # Test Ideal calcs
+    ideal_plot = runtime.plot_real_ideal()
+    ideal_plot.savefig('ideal_max_obj.jpg')
 
     # Hypervolume
     #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
