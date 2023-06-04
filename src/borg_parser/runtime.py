@@ -2,11 +2,15 @@
 
 import pandas as pd
 import numpy as np
+import pymoo.indicators.hv
 from more_itertools import consecutive_groups
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pygmo
 import hiplot as hip
+#from pymoo.indicators.hv import Hypervolume
+import pymoo
+
 sns.set()
 
 
@@ -238,6 +242,12 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         for nfe, objs in self.archive_objectives.items():
             # Compute hypervolume
+
+            #pymooo version - haven't gotten it to finish calculating
+            #obj_array= np.array(objs)
+            # hv = pymoo.indicators.hv.Hypervolume(ref_point=reference_point)
+            # hv_val = hv.do(obj_array)
+
             hv = pygmo.hypervolume(objs)
             hv_val = hv.compute(ref_point=reference_point)
 
@@ -256,8 +266,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         nadir_dict = {}
 
         for nfe, objs in self.archive_objectives.items():
-            # Compute realized nadir point
-            #nadir = pygmo.nadir(objs)
+            # Compute realized nadir point.
             hv = pygmo.hypervolume(objs)
             nadir = hv.refpoint()
             nadir_val = max(nadir)
@@ -286,6 +295,55 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             ideal_dict[nfe] = ideal_val
 
         self.real_ideal = ideal_dict
+
+    def compute_extreme_pt_changes(self):
+        """Compute change in realized nadir point (min of each objective value in set of solutions)
+        # see Blank and Deb 2020 for use of this metric as MOEA termination criterion
+        Parameters
+        ----------
+        """
+
+        #self.compute_real_nadir()
+        #self.compute_real_ideal()
+
+        #nadir_list = pd.Series(self.real_nadir)
+        #ideal_list = pd.Series(self.real_ideal)
+        # Setup
+        ideal_dict = {}
+        nadir_dict = {}
+        nadir_change_dict = {}
+        ideal_change_dict = {}
+
+        for nfe, objs in self.archive_objectives.items():
+            # Compute realized nadir and ideal points for each FE
+            ideal = pd.Series(pygmo.ideal(objs))
+            hv = pygmo.hypervolume(objs)
+            nadir = pd.Series(hv.refpoint())
+
+            # Store values
+            ideal_dict[nfe] = ideal
+            nadir_dict[nfe] = nadir
+
+        # for each NFE, calculate running normalized change
+        for nfe in ideal_dict:
+            ideal_objs = ideal_dict[nfe]
+            nadir_objs = nadir_dict[nfe]
+            nadir_change = 0
+            ideal_change = 0
+            for i in range(1, len(ideal_objs)):
+                denom = nadir_objs[i] - ideal_objs[i]
+                nadir_temp = (nadir_objs[i-1]-nadir_objs[i])/denom
+                ideal_temp = (ideal_objs[i-1]-ideal_objs[i])/denom
+                if nadir_temp > nadir_change:
+                    nadir_change = nadir_temp
+                if ideal_temp > ideal_change:
+                    ideal_change = ideal_temp
+            nadir_change_dict[nfe] = nadir_change
+            ideal_change_dict[nfe] = ideal_change
+
+        self.nadir_change = nadir_change_dict
+        self.ideal_change = ideal_change_dict
+
     def plot_improvements(
         self,
         y_lab='Improvements',
@@ -381,6 +439,36 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return fig
 
+    def plot_real_nadir_change(self):
+        """
+        Plot nadir point over the search
+        Parameters
+        ----------
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Plot of nadir point
+        """
+        sns.set()
+
+        # Computing nadir point
+        self.compute_extreme_pt_changes()
+        df_run = pd.DataFrame()
+        df_run['nadir_change'] = pd.Series(self.nadir_change)
+        df_run['nfe'] = df_run.index
+
+        # Plotting each dimension
+        fig, ax = plt.subplots()
+        sns.lineplot(
+            data=df_run,
+            x='nfe',
+            y='nadir_change',
+            ax=ax
+        )
+        plt.ylabel('Realized Nadir Change')
+        plt.xlabel('Function Evaluations')
+
+        return fig
     def plot_real_nadir(self):
         """
         Plot nadir point over the search

@@ -1,6 +1,7 @@
 """Example usage script"""
 
 import borg_parser
+from pymoo.indicators.hv import Hypervolume
 
 def main():
     # Change path name to your desired runtime file to analyze
@@ -89,12 +90,12 @@ def main():
     #obj_plot.to_html("borgRW_objectives.html")
 
     # Test Ideal calcs
-    ideal_plot = runtime.plot_real_ideal()
-    ideal_plot.savefig('ideal_max_obj.jpg')
+    nadir_plot = runtime.plot_real_nadir_change()
+    nadir_plot.savefig('nadir_change.jpg')
 
     # Hypervolume
     #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
-    #reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
+    reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
     #hv_plot = runtime.plot_hypervolume(reference)
     #hv_plot.savefig("borgRW_hypervolume.jpg")
 
