@@ -89,9 +89,16 @@ def main():
     #obj_plot = runtime.plot_objectives_parcoord(objective_ranges)
     #obj_plot.to_html("borgRW_objectives.html")
 
-    # Test Ideal calcs
-    nadir_plot = runtime.plot_real_nadir_change()
-    nadir_plot.savefig('nadir_change.jpg')
+    # Decisions
+    mead_plot, powell_plot = runtime.plot_decisions_parcoord()
+    mead_plot.to_html('borgRW_mead_decisions.html')
+    powell_plot.to_html('borgRW_powell_decisions.html')
+
+    # Test Extreme Point calcs
+    # nadir_plot = runtime.plot_real_nadir_change()
+    # nadir_plot.savefig('nadir_change.jpg')
+    # ideal_plot = runtime.plot_real_ideal_change()
+    # ideal_plot.savefig('ideal_change.jpg')
 
     # Hypervolume
     #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]

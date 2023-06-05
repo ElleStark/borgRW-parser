@@ -331,7 +331,11 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             nadir_change = 0
             ideal_change = 0
             for i in range(1, len(ideal_objs)):
+                #if nadir_objs[i]==ideal_objs[i]:
+                #    nadir_objs += 1e-16
                 denom = nadir_objs[i] - ideal_objs[i]
+                if denom == 0:
+                    denom = 1
                 nadir_temp = (nadir_objs[i-1]-nadir_objs[i])/denom
                 ideal_temp = (ideal_objs[i-1]-ideal_objs[i])/denom
                 if nadir_temp > nadir_change:
@@ -469,6 +473,38 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         plt.xlabel('Function Evaluations')
 
         return fig
+
+    def plot_real_ideal_change(self):
+        """
+        Plot ideal point change over the search
+        Parameters
+        ----------
+        Returns
+        -------
+        matplotlib.figure.Figure
+            Plot of ideal point change
+        """
+        sns.set()
+
+        # Computing nadir point
+        self.compute_extreme_pt_changes()
+        df_run = pd.DataFrame()
+        df_run['ideal_change'] = pd.Series(self.ideal_change)
+        df_run['nfe'] = df_run.index
+
+        # Plotting each dimension
+        fig, ax = plt.subplots()
+        sns.lineplot(
+            data=df_run,
+            x='nfe',
+            y='ideal_change',
+            ax=ax
+        )
+        plt.ylabel('Realized Ideal Change')
+        plt.xlabel('Function Evaluations')
+
+        return fig
+
     def plot_real_nadir(self):
         """
         Plot nadir point over the search
@@ -613,6 +649,46 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
 
         return exp
+
+    def plot_decisions_parcoord(self, mead_dec_ranges=None):
+        """
+        Create interactive parallel plot of objective values for archive solutions
+        Returns
+        -------
+        hiplot.experiment.Experiment
+            Hiplot experiment
+        """
+        # Get final front
+        nfe = self.nfe[-1]
+        """
+        df_decs = pd.DataFrame(
+            self.archive_decisions[nfe],
+            columns=self.decision_names
+        )
+        """
+        df_decs = pd.DataFrame(
+            self.archive_decisions[nfe],
+            columns=self.decision_names
+        )
+
+        df_mead_decs = df_decs.filter(like=('Mead_Shortage' or 'Mead_Surplus'))
+        df_powell_decs = df_decs.filter(like='Powell')
+
+        # Create Mead Plot
+        color_col = "Mead_Shortage_e_DV Row cat 0"
+        mead_exp = hip.Experiment.from_dataframe(df_mead_decs)
+        mead_exp.parameters_definition[color_col].colormap = 'interpolateViridis'
+        # Force axes ranges to same min/max; useful for comparing different plots
+        if mead_dec_ranges is not None:
+            for name, low, high in dec_ranges:
+                mead_exp.parameters_definition[name].force_range(low, high)
+
+        # Create Powell Plot
+        color_col = "Powell_Tier_Elevation_DV.txt Row cat 0"
+        powell_exp = hip.Experiment.from_dataframe(df_powell_decs)
+        powell_exp.parameters_definition[color_col].colormap = 'interpolateViridis'
+
+        return mead_exp, powell_exp
 
 class BorgRuntimeAggregator():
     """
