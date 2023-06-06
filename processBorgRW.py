@@ -5,7 +5,7 @@ from pymoo.indicators.hv import Hypervolume
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial6.2/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial15300/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -82,29 +82,29 @@ def main():
     runtime.set_metric_names(metric_names)
 
     # Improvements
-    #fig = runtime.plot_improvements()
-    #fig.savefig("borgRW_improvements.jpg")
+    fig = runtime.plot_improvements()
+    fig.savefig("borgRW_improvements.jpg")
 
     # Objectives
-    #obj_plot = runtime.plot_objectives_parcoord(objective_ranges)
-    #obj_plot.to_html("borgRW_objectives.html")
+    obj_plot = runtime.plot_objectives_parcoord()
+    obj_plot.to_html("borgRW_objectives.html")
 
     # Decisions
     mead_plot, powell_plot = runtime.plot_decisions_parcoord()
     mead_plot.to_html('borgRW_mead_decisions.html')
     powell_plot.to_html('borgRW_powell_decisions.html')
 
-    # Test Extreme Point calcs
-    # nadir_plot = runtime.plot_real_nadir_change()
-    # nadir_plot.savefig('nadir_change.jpg')
-    # ideal_plot = runtime.plot_real_ideal_change()
-    # ideal_plot.savefig('ideal_change.jpg')
+    # Extreme Point metrics
+    nadir_plot = runtime.plot_real_nadir_change()
+    nadir_plot.savefig('nadir_change.jpg')
+    ideal_plot = runtime.plot_real_ideal_change()
+    ideal_plot.savefig('ideal_change.jpg')
 
     # Hypervolume
     #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
     reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
-    #hv_plot = runtime.plot_hypervolume(reference)
-    #hv_plot.savefig("borgRW_hypervolume.jpg")
+    hv_plot = runtime.plot_hypervolume(reference)
+    hv_plot.savefig("borgRW_hypervolume.jpg")
 
 if __name__ == '__main__':
     main()

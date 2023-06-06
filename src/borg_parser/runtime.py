@@ -302,12 +302,6 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         Parameters
         ----------
         """
-
-        #self.compute_real_nadir()
-        #self.compute_real_ideal()
-
-        #nadir_list = pd.Series(self.real_nadir)
-        #ideal_list = pd.Series(self.real_ideal)
         # Setup
         ideal_dict = {}
         nadir_dict = {}
@@ -323,27 +317,34 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             # Store values
             ideal_dict[nfe] = ideal
             nadir_dict[nfe] = nadir
+            tau_key = nfe
+
+        # For smoother curve, normalize all values by nadir - ideal at final timestep
+        tau_ideal = ideal_dict[tau_key]
+        tau_nadir = nadir_dict[tau_key]
+        norm = tau_nadir - tau_ideal
 
         # for each NFE, calculate running normalized change
         for nfe in ideal_dict:
             ideal_objs = ideal_dict[nfe]
             nadir_objs = nadir_dict[nfe]
-            nadir_change = 0
-            ideal_change = 0
-            for i in range(1, len(ideal_objs)):
-                #if nadir_objs[i]==ideal_objs[i]:
-                #    nadir_objs += 1e-16
-                denom = nadir_objs[i] - ideal_objs[i]
-                if denom == 0:
-                    denom = 1
-                nadir_temp = (nadir_objs[i-1]-nadir_objs[i])/denom
-                ideal_temp = (ideal_objs[i-1]-ideal_objs[i])/denom
-                if nadir_temp > nadir_change:
-                    nadir_change = nadir_temp
-                if ideal_temp > ideal_change:
-                    ideal_change = ideal_temp
-            nadir_change_dict[nfe] = nadir_change
-            ideal_change_dict[nfe] = ideal_change
+
+            if (nadir_objs == ideal_objs).all():
+                nadir_change_dict[nfe] = np.nan
+                ideal_change_dict[nfe] = np.nan
+            else:
+                nadir_change = 0
+                ideal_change = 0
+                for i in range(1, len(ideal_objs)):
+                    nadir_temp = (nadir_objs[i] - tau_nadir[i]) / norm[i]
+                    ideal_temp = (ideal_objs[i] - tau_ideal[i]) / norm[i]
+                    if nadir_temp > nadir_change:
+                        nadir_change = nadir_temp
+                    if ideal_temp > ideal_change:
+                        ideal_change = ideal_temp
+
+                    nadir_change_dict[nfe] = nadir_change
+                    ideal_change_dict[nfe] = ideal_change
 
         self.nadir_change = nadir_change_dict
         self.ideal_change = ideal_change_dict
@@ -460,6 +461,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         df_run = pd.DataFrame()
         df_run['nadir_change'] = pd.Series(self.nadir_change)
         df_run['nfe'] = df_run.index
+        df_run = df_run.dropna()
 
         # Plotting each dimension
         fig, ax = plt.subplots()
@@ -491,6 +493,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         df_run = pd.DataFrame()
         df_run['ideal_change'] = pd.Series(self.ideal_change)
         df_run['nfe'] = df_run.index
+        df_run = df_run.dropna()
 
         # Plotting each dimension
         fig, ax = plt.subplots()
