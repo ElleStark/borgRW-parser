@@ -1,7 +1,10 @@
 """Example usage script"""
 
 import borg_parser
-from pymoo.indicators.hv import Hypervolume
+from matplotlib import pyplot as plt
+from celluloid import Camera
+import visualization_functions
+
 
 def main():
     # Change path name to your desired runtime file to analyze
@@ -81,30 +84,84 @@ def main():
     runtime.set_objective_names(objective_names)
     runtime.set_metric_names(metric_names)
 
-    # Improvements
-    fig = runtime.plot_improvements()
-    fig.savefig("borgRW_improvements.jpg")
+    # Animated dashboard, code modified from David Gold's runtimeDiagnostics library
+    # source: https://github.com/davidfgold/runtimeDiagnostics/blob/master/rutime_vis_main.py
+    # blog post: https://waterprogramming.wordpress.com/2020/05/06/beyond-hypervolume-dynamic-visualization-of-moea-runtime/
+    ################### Diagnostic Dashboard ##############################
 
-    # Objectives
-    obj_plot = runtime.plot_objectives_parcoord()
-    obj_plot.to_html("borgRW_objectives.html")
+    # Get snapshots of run at desired frequency (since our runtime has every FE) - added by EStark
+    # For 20,000 FEs, every 100 FEs should produce nice animation
 
-    # Decisions
-    mead_plot, powell_plot = runtime.plot_decisions_parcoord()
-    mead_plot.to_html('borgRW_mead_decisions.html')
-    powell_plot.to_html('borgRW_powell_decisions.html')
+    # Number of runtime intervals is approximate, since the Runtime file doesn't actually output every FE
+    # This code uses floor division for index sampling interval to get close to number of desired intervals
+    snaps = runtime.get_snapshots(200)
+    #objs = snaps['Objectives']
 
-    # Extreme Point metrics
-    nadir_plot = runtime.plot_real_nadir_change()
-    nadir_plot.savefig('nadir_change.jpg')
-    ideal_plot = runtime.plot_real_ideal_change()
-    ideal_plot.savefig('ideal_change.jpg')
+    # create the figure object to store subplots
+    fig = plt.figure(figsize=(12, 12))
+    gs = fig.add_gridspec(5, 2)
 
-    # Hypervolume
-    #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
-    reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
-    hv_plot = runtime.plot_hypervolume(reference)
-    hv_plot.savefig("borgRW_hypervolume.jpg")
+    # information axis
+    text_ax = fig.add_subplot(gs[0:2, 0])
+
+    # 3D scatter axis
+    scatter_ax = fig.add_subplot(gs[0:2, 1], projection='3d')
+
+    # parallel axis plot axis
+    px_ax = fig.add_subplot(gs[2, :])
+
+    # HV axis
+    HV_ax = fig.add_subplot(gs[3, :])
+
+    # operator probabilities
+    op_ax = fig.add_subplot(gs[4, :])
+
+    # set up camera for animation
+    camera = Camera(fig)
+    freq = snaps['NFE'][1] - snaps['NFE'][0]
+    total_NFE = snaps['NFE'][-1]
+
+    # loop through runtime snapshots and plot data
+    # capture each with camera
+    for i in range(0, len(snaps['NFE'])):
+        visualization_functions.plot_text(text_ax, 'Baseline', 8, freq, i)
+        #visualization_functions.plot_3Dscatter(scatter_ax, objs_3, i)
+        visualization_functions.plot_operators(op_ax, snaps, total_NFE, i)
+        #visualization_functions.plot_metric(HV_ax, HV, "Hypervolume", seed0['NFE'], len(seed0['NFE']) * 25, 1, i)
+        #visualization_functions.plot_paxis(px_ax, objs, i)
+        fig.tight_layout()
+        camera.snap()
+
+    # use Celluloid to stitch animation
+    animation = camera.animate()
+
+    animation.save('BorgRW_runtime.gif', writer='PillowWriter')
+##################################################################################################
+
+    # # Improvements
+    # fig = runtime.plot_improvements()
+    # fig.savefig("borgRW_improvements.jpg")
+    #
+    # # Objectives
+    # obj_plot = runtime.plot_objectives_parcoord()
+    # obj_plot.to_html("borgRW_objectives.html")
+    #
+    # # Decisions
+    # mead_plot, powell_plot = runtime.plot_decisions_parcoord()
+    # mead_plot.to_html('borgRW_mead_decisions.html')
+    # powell_plot.to_html('borgRW_powell_decisions.html')
+    #
+    # # Extreme Point metrics
+    # nadir_plot = runtime.plot_real_nadir_change()
+    # nadir_plot.savefig('nadir_change.jpg')
+    # ideal_plot = runtime.plot_real_ideal_change()
+    # ideal_plot.savefig('ideal_change.jpg')
+    #
+    # # Hypervolume
+    # #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
+    # reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
+    # hv_plot = runtime.plot_hypervolume(reference)
+    # hv_plot.savefig("borgRW_hypervolume.jpg")
 
 if __name__ == '__main__':
     main()

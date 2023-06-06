@@ -229,6 +229,75 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         """
         self.metric_names = metric_names
 
+    def get_snapshots(self, num_intervals=200, n_obj=8):
+        # Extracts snapshots of runtime file values at desired intervals of FEs
+        # for use in animations per David Gold's runtimeDiagnostics library
+
+        # Extract output snapshots in numpy arrays
+        FE_interval = len(self.nfe)//num_intervals
+
+        NFE = np.array(self.nfe[::FE_interval])
+        #SBX = pd.Series(self.sbx).to_frame().reset_index()
+        n = len(NFE)
+
+        SBX = np.zeros(n)
+        DE = np.zeros(n)
+        PCX = np.zeros(n)
+        SPX = np.zeros(n)
+        UNDX = np.zeros(n)
+        UM = np.zeros(n)
+        improvements = np.zeros(n)
+        restarts = np.zeros(n)
+        pop_size = np.zeros(n)
+        archive_size = np.zeros(n)
+        #all_obj_snapshots = np.zeros([n, n_obj])
+
+        i = 0
+        for val in NFE:
+            SBX[i] = self.sbx[val]
+            DE[i] = self.de[val]
+            PCX[i] = self.pcx[val]
+            SPX[i] = self.spx[val]
+            UNDX[i] = self.undx[val]
+            UM[i] = self.um[val]
+            improvements[i] = self.improvements[val]
+            restarts[i] = self.restarts[val]
+            pop_size[i] = self.population_size[val]
+            archive_size[i] = self.archive_size[val]
+            #all_obj_snapshots[i] = self.archive_objectives[val]
+            i += 1
+        #SBX = np.array(self.sbx[x] for x in NFE)
+        #SBX = np.array(self.sbx[x] for x in NFE_list)
+        # DE = np.array(self.de[x] for x in NFE)
+        # PCX = np.array(self.pcx[x] for x in NFE)
+        # SPX = np.array(self.spx[x] for x in NFE)
+        # UNDX = np.array(self.undx[x] for x in NFE)
+        # UM = np.array(self.um[x] for x in NFE)
+        # improvements = np.array(self.improvements[x] for x in NFE)
+        # restarts = np.array(self.restarts[x] for x in NFE)
+        # pop_size = np.array(self.population_size[x] for x in NFE)
+        # archive_size = np.array(self.archive_size[x] for x in NFE)
+        # all_obj_snapshots = np.array(self.archive_objectives[x] for x in NFE)
+
+        runtime_output = {'NFE': NFE,
+                          #'Elapsed Time': Elapsed_time,
+                          'SBX': SBX,
+                          'DE': DE,
+                          'PCX': PCX,
+                          'SPX': SPX,
+                          'UNDX': UNDX,
+                          'UM': UM,
+                          'Improvements': improvements,
+                          'Restarts': restarts,
+                          'Population Size': pop_size,
+                          'Archive Size': archive_size,
+                          # #'Mutation Index': mutation_idx,
+                          #'Objectives': all_obj_snapshots
+        }
+
+        return runtime_output
+
+
     def compute_hypervolume(self, reference_point):
         """Compute hypervolumes
         Parameters
@@ -653,7 +722,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return exp
 
-    def plot_decisions_parcoord(self, mead_dec_ranges=None):
+    def plot_decisions_parcoord(self, mead_dec_ranges=None, powell_dec_ranges=None):
         """
         Create interactive parallel plot of objective values for archive solutions
         Returns
@@ -683,13 +752,17 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         mead_exp.parameters_definition[color_col].colormap = 'interpolateViridis'
         # Force axes ranges to same min/max; useful for comparing different plots
         if mead_dec_ranges is not None:
-            for name, low, high in dec_ranges:
+            for name, low, high in mead_dec_ranges:
                 mead_exp.parameters_definition[name].force_range(low, high)
 
         # Create Powell Plot
         color_col = "Powell_Tier_Elevation_DV.txt Row cat 0"
         powell_exp = hip.Experiment.from_dataframe(df_powell_decs)
         powell_exp.parameters_definition[color_col].colormap = 'interpolateViridis'
+        # Force axes ranges to same min/max; useful for comparing different plots
+        if powell_dec_ranges is not None:
+            for name, low, high in powell_dec_ranges:
+                powell_exp.parameters_definition[name].force_range(low, high)
 
         return mead_exp, powell_exp
 
