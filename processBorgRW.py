@@ -8,7 +8,7 @@ import visualization_functions
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial5.31/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial18420/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -99,25 +99,25 @@ def main():
 
     # create the figure object to store subplots
     fig = plt.figure(figsize=(12, 12))
-    gs = fig.add_gridspec(6, 2)
+    gs = fig.add_gridspec(4, 2)
 
     # information axis
-    text_ax = fig.add_subplot(gs[0:2, 0])
+    text_ax = fig.add_subplot(gs[0:1, 0])
 
     # 3D scatter axis
-    scatter_ax = fig.add_subplot(gs[0:2, 1], projection='3d')
+    #scatter_ax = fig.add_subplot(gs[0:2, 1], projection='3d')
 
     # parallel axis plot axis
-    px_ax = fig.add_subplot(gs[2, :])
+    px_ax = fig.add_subplot(gs[1, :])
 
     # HV axis
-    HV_ax = fig.add_subplot(gs[3, :])
+    HV_ax = fig.add_subplot(gs[2, :])
 
     # Change in ideal axis
     # ideal_ax = fig.add_subplot(gs[4, :])
 
     # operator probabilities
-    op_ax = fig.add_subplot(gs[4, :])
+    op_ax = fig.add_subplot(gs[3, :])
 
     # set up camera for animation
     camera = Camera(fig)
