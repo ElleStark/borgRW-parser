@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
 from yellowbrick.features import RadViz
-def plot_text(ax, problem, num_obj, freq, i):
+def plot_text(ax, problem, num_obj, runtime, i):
     """
 
     Plots text in one subplot with summary information
@@ -21,7 +21,7 @@ def plot_text(ax, problem, num_obj, freq, i):
     ax.text(0, 4, 'Runtime Diagnostic Dashboard', fontsize=28)
     ax.text(0, 3.5, 'Problem: ' + problem, fontsize=24)
     ax.text(0, 3, 'Num obj: ' + str(num_obj), fontsize=24)
-    ax.text(0, 2, 'Current NFE: ' + str(i * freq), fontsize=24)
+    ax.text(0, 2, 'Current NFE: ' + str(runtime['NFE'][i]), fontsize=24)
     ax.set_xticks([])
     ax.set_yticks([])
     ax.grid(False)

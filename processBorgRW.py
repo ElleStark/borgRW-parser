@@ -124,7 +124,7 @@ def main():
     # loop through runtime snapshots and plot data
     # capture each with camera
     for i in range(0, len(snaps['NFE'])):
-        visualization_functions.plot_text(text_ax, 'Baseline', 8, freq, i)
+        visualization_functions.plot_text(text_ax, 'Baseline', 8, snaps, i)
         #visualization_functions.plot_3Dscatter(scatter_ax, objs_3, i)
         visualization_functions.plot_operators(op_ax, snaps, total_NFE, i)
         #visualization_functions.plot_metric(HV_ax, HV, "Hypervolume", seed0['NFE'], len(seed0['NFE']) * 25, 1, i)
