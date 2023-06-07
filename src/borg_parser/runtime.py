@@ -202,6 +202,25 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.archive_objectives = dict(zip(self.nfe, objectives_ls))
         self.archive_metrics = dict(zip(self.nfe, metrics_ls))
 
+    def normalize_archive_objectives(self):
+        # uses cumulative nadir point to normalize all objective values (max value = 1)
+        norm_obj_dict = {}
+        self.compute_real_nadir()
+        self.compute_real_ideal()
+
+        # normalization constant (denominator)
+        norm = self.max_nadir - self.min_ideal
+
+        # normalize by eqn: (obj[i] - ideal) / (nadir - ideal)
+        for nfe, objs in self.archive_objectives.items():
+            obj_norm_list = []
+            for obj in objs:
+                obj_norm = np.divide(np.subtract(obj, self.min_ideal), norm)
+                obj_norm_list.append(obj_norm)
+            norm_obj_dict[nfe] = obj_norm_list
+
+        self.archive_objectives_norm = norm_obj_dict
+
     def set_decision_names(self, decision_names):
         """Set decision names
         Parameters
@@ -250,10 +269,18 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         restarts = np.zeros(n)
         pop_size = np.zeros(n)
         archive_size = np.zeros(n)
-        #all_obj_snapshots = np.zeros([n, n_obj])
+        #all_obj_snapshots = np.zeros((n, n_obj))
+        all_obj_snapshots = []
+        self.normalize_archive_objectives()
+
+        # Compute relevant metrics
+        reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
+        self.compute_hypervolume(reference)
+        hypervolume = np.zeros(n)
 
         i = 0
         for val in NFE:
+            # Runtime metrics
             SBX[i] = self.sbx[val]
             DE[i] = self.de[val]
             PCX[i] = self.pcx[val]
@@ -264,20 +291,12 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             restarts[i] = self.restarts[val]
             pop_size[i] = self.population_size[val]
             archive_size[i] = self.archive_size[val]
-            #all_obj_snapshots[i] = self.archive_objectives[val]
+            # Calculated Metrics
+            hypervolume[i] = self.hypervolume[val]
+            # Objectives: normalize and append to list
+            obj_norm = self.archive_objectives_norm[val]
+            all_obj_snapshots.append(obj_norm)
             i += 1
-        #SBX = np.array(self.sbx[x] for x in NFE)
-        #SBX = np.array(self.sbx[x] for x in NFE_list)
-        # DE = np.array(self.de[x] for x in NFE)
-        # PCX = np.array(self.pcx[x] for x in NFE)
-        # SPX = np.array(self.spx[x] for x in NFE)
-        # UNDX = np.array(self.undx[x] for x in NFE)
-        # UM = np.array(self.um[x] for x in NFE)
-        # improvements = np.array(self.improvements[x] for x in NFE)
-        # restarts = np.array(self.restarts[x] for x in NFE)
-        # pop_size = np.array(self.population_size[x] for x in NFE)
-        # archive_size = np.array(self.archive_size[x] for x in NFE)
-        # all_obj_snapshots = np.array(self.archive_objectives[x] for x in NFE)
 
         runtime_output = {'NFE': NFE,
                           #'Elapsed Time': Elapsed_time,
@@ -291,14 +310,15 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
                           'Restarts': restarts,
                           'Population Size': pop_size,
                           'Archive Size': archive_size,
+                          'Hypervolume': hypervolume,
                           # #'Mutation Index': mutation_idx,
-                          #'Objectives': all_obj_snapshots
+                          'Objectives': all_obj_snapshots
         }
 
         return runtime_output
 
 
-    def compute_hypervolume(self, reference_point):
+    def compute_hypervolume(self, reference_point=None):
         """Compute hypervolumes
         Parameters
         ----------
@@ -308,6 +328,9 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         """
         # Setup
         hypervolume_dict = {}
+        if reference_point is None:
+            self.compute_real_nadir()
+            reference_point = np.add(self.max_nadir, abs(self.max_nadir * 0.05)) # offset by 5% to ensure strictly greater than other points
 
         for nfe, objs in self.archive_objectives.items():
             # Compute hypervolume
@@ -326,24 +349,28 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.hypervolume = hypervolume_dict
 
     def compute_real_nadir(self):
-        """Compute realized nadir point (max of each objective value in set of solutions)
-        # see Blank and Deb 2020 for use of this metric as MOEA termination criterion
+        """Compute realized nadir points (max of each objective value in set of solutions)
+        Stores values in a dictionary of Lists of objective values at nadir for each NFE,
+        Also stores lis max objective values at any nadir for all NFEs (useful for plotting normalization)
+        see Blank and Deb 2020 for use of realized nadir as part of MOEA termination criterion
         Parameters
         ----------
         """
         # Setup
-        nadir_dict = {}
+        max_nadir = np.full(self.n_objectives, -20000000)
+        nadir_points_dict = {}
 
         for nfe, objs in self.archive_objectives.items():
-            # Compute realized nadir point.
+            # Compute realized nadir point using pygmo refpoint()
             hv = pygmo.hypervolume(objs)
             nadir = hv.refpoint()
-            nadir_val = max(nadir)
 
-            # Store value
-            nadir_dict[nfe] = nadir_val
+            # Store values
+            nadir_points_dict[nfe] = nadir
+            max_nadir[max_nadir < nadir] = nadir[max_nadir < nadir]
 
-        self.real_nadir = nadir_dict
+        self.max_nadir = max_nadir
+        self.nadir_points = nadir_points_dict
 
     def compute_real_ideal(self):
         """Compute realized ideal point (min of each objective value in set of solutions)
@@ -353,16 +380,17 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         """
         # Setup
         ideal_dict = {}
+        min_ideal = np.full(self.n_objectives, 10000000)
 
         for nfe, objs in self.archive_objectives.items():
-            # Compute realized nadir point
-            #nadir = pygmo.nadir(objs)
+            # Compute realized ideal point
             ideal = pygmo.ideal(objs)
-            ideal_val = max(ideal)
 
             # Store value
-            ideal_dict[nfe] = ideal_val
+            ideal_dict[nfe] = ideal
+            min_ideal[min_ideal > ideal] = ideal[min_ideal > ideal]
 
+        self.min_ideal = min_ideal
         self.real_ideal = ideal_dict
 
     def compute_extreme_pt_changes(self):
@@ -480,7 +508,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return fig
 
-    def plot_hypervolume(self, reference_point):
+    def plot_hypervolume(self, reference_point=None):
         """
         Plot hypervolume over the search
         Parameters

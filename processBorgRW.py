@@ -8,7 +8,7 @@ import visualization_functions
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial15300/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces_partial5.31/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -90,16 +90,16 @@ def main():
     ################### Diagnostic Dashboard ##############################
 
     # Get snapshots of run at desired frequency (since our runtime has every FE) - added by EStark
-    # For 20,000 FEs, every 100 FEs should produce nice animation
-
-    # Number of runtime intervals is approximate, since the Runtime file doesn't actually output every FE
+    # Number of intervals is approximate, since Runtime file doesn't have predictable FE intervals (due to restarts etc)
     # This code uses floor division for index sampling interval to get close to number of desired intervals
-    snaps = runtime.get_snapshots(200)
-    #objs = snaps['Objectives']
+    n_intervals = 200
+    snaps = runtime.get_snapshots(n_intervals)
+    objs = snaps['Objectives']
+    HV = snaps['Hypervolume']
 
     # create the figure object to store subplots
     fig = plt.figure(figsize=(12, 12))
-    gs = fig.add_gridspec(5, 2)
+    gs = fig.add_gridspec(6, 2)
 
     # information axis
     text_ax = fig.add_subplot(gs[0:2, 0])
@@ -112,6 +112,9 @@ def main():
 
     # HV axis
     HV_ax = fig.add_subplot(gs[3, :])
+
+    # Change in ideal axis
+    # ideal_ax = fig.add_subplot(gs[4, :])
 
     # operator probabilities
     op_ax = fig.add_subplot(gs[4, :])
@@ -127,8 +130,8 @@ def main():
         visualization_functions.plot_text(text_ax, 'Baseline', 8, snaps, i)
         #visualization_functions.plot_3Dscatter(scatter_ax, objs_3, i)
         visualization_functions.plot_operators(op_ax, snaps, total_NFE, i)
-        #visualization_functions.plot_metric(HV_ax, HV, "Hypervolume", seed0['NFE'], len(seed0['NFE']) * 25, 1, i)
-        #visualization_functions.plot_paxis(px_ax, objs, i)
+        visualization_functions.plot_metric(HV_ax, HV, "Hypervolume", snaps['NFE'], total_NFE, HV[-1], i)
+        visualization_functions.plot_paxis(px_ax, objs, i, objective_names)
         fig.tight_layout()
         camera.snap()
 
@@ -136,32 +139,32 @@ def main():
     animation = camera.animate()
 
     animation.save('BorgRW_runtime.gif', writer='PillowWriter')
-##################################################################################################
+################################ End Animations #########################################
 
-    # # Improvements
-    # fig = runtime.plot_improvements()
-    # fig.savefig("borgRW_improvements.jpg")
-    #
-    # # Objectives
-    # obj_plot = runtime.plot_objectives_parcoord()
-    # obj_plot.to_html("borgRW_objectives.html")
-    #
-    # # Decisions
-    # mead_plot, powell_plot = runtime.plot_decisions_parcoord()
-    # mead_plot.to_html('borgRW_mead_decisions.html')
-    # powell_plot.to_html('borgRW_powell_decisions.html')
-    #
-    # # Extreme Point metrics
-    # nadir_plot = runtime.plot_real_nadir_change()
-    # nadir_plot.savefig('nadir_change.jpg')
-    # ideal_plot = runtime.plot_real_ideal_change()
-    # ideal_plot.savefig('ideal_change.jpg')
-    #
-    # # Hypervolume
-    # #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
-    # reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
-    # hv_plot = runtime.plot_hypervolume(reference)
-    # hv_plot.savefig("borgRW_hypervolume.jpg")
+    # Improvements
+    fig = runtime.plot_improvements()
+    fig.savefig("borgRW_improvements.jpg")
+
+    # Objectives
+    obj_plot = runtime.plot_objectives_parcoord()
+    obj_plot.to_html("borgRW_objectives.html")
+
+    # Decisions
+    mead_plot, powell_plot = runtime.plot_decisions_parcoord()
+    mead_plot.to_html('borgRW_mead_decisions.html')
+    powell_plot.to_html('borgRW_powell_decisions.html')
+
+    # Extreme Point metrics
+    nadir_plot = runtime.plot_real_nadir_change()
+    nadir_plot.savefig('nadir_change.jpg')
+    ideal_plot = runtime.plot_real_ideal_change()
+    ideal_plot.savefig('ideal_change.jpg')
+
+    # Hypervolume
+    #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
+    #reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
+    hv_plot = runtime.plot_hypervolume()
+    hv_plot.savefig("borgRW_hypervolume.jpg")
 
 if __name__ == '__main__':
     main()

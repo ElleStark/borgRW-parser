@@ -102,7 +102,7 @@ def plot_metric(ax, metric, metric_name, NFE, total_NFE, ymax, i):
     ax.set_ylabel(metric_name)
 
 
-def plot_paxis(ax, objs, i):
+def plot_paxis(ax, objs, i, obj_names):
     """
 
     Plots a parallel axis plot of objectives
@@ -113,17 +113,20 @@ def plot_paxis(ax, objs, i):
     Parameter i: snapshot number
 
     """
-
-    for j in range(len(objs[i][:, 0])):
-        ys = objs[i][j, :]
+    for pol in objs[i]:
+        ys = pol
         xs = range(len(ys))
         ax.plot(xs, ys, c='b', alpha=.8, linewidth=.5)
+    # for j in range(len(objs[i][:, 0])):
+    #     ys = objs[i][j, :]
+    #     xs = range(len(ys))
+    #     ax.plot(xs, ys, c='b', alpha=.8, linewidth=.5)
 
     ax.set_ylabel('Objective val \n $\longleftarrow$ Preference', size=12)
-    ax.set_ylim([0, 2])
-    ax.set_xticks([0, 1, 2])
-    ax.set_xticklabels(['Obj 1', 'Obj 2', 'Obj 3'], fontsize=12)
-    ax.set_xlim([0, len(objs[i][0, :]) - 1])
+    #ax.set_ylim([0, 2])
+    ax.set_xticks([0, 1, 2, 3, 4, 5, 6, 7])
+    ax.set_xticklabels(obj_names, fontsize=12)
+    ax.set_xlim([0, 7])
 
 
 def plot_Radvis(objectives, ax, name):
