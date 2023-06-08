@@ -68,7 +68,8 @@ class BorgRuntimeUtils:
         df,
         n_decisions,
         n_objectives,
-        n_metrics
+        n_metrics,
+        n_constraints
     ):
         """
         Convert archive data to dataframes
@@ -82,10 +83,12 @@ class BorgRuntimeUtils:
             Number of objectives
         n_metrics : int
             Number of metrics
+        n_constraints : int
+            Number of constraints
         Returns
         -------
         tuple
-            Tuple of decisions, objectives, and metrics list of lists
+            Tuple of decisions, objectives, and constraints list of lists
         """
         # Extract Archive Prints
         df_temp = df[np.isnan(df['value'])]
@@ -103,7 +106,10 @@ class BorgRuntimeUtils:
         df_all_objectives = df_temp.iloc[:, start_idx:end_idx]
         start_idx = end_idx
         end_idx = start_idx + n_metrics
-        df_all_metrics = df_temp.iloc[:, start_idx:end_idx]
+        df_all_metrics = df_temp.iloc[:,start_idx:end_idx]
+        start_idx = end_idx
+        end_idx = start_idx + n_constraints
+        df_all_constraints = df_temp.iloc[:, start_idx:end_idx]
 
         # Turn into list of lists
         decisions_ls = [
@@ -118,8 +124,12 @@ class BorgRuntimeUtils:
             df_all_metrics.loc[i].values.tolist()
             for i in consecutive_groups(df_all_metrics.index)
         ]
+        constraints_ls = [
+            df_all_constraints.loc[i].values.tolist()
+            for i in consecutive_groups(df_all_constraints.index)
+        ]
 
-        return decisions_ls, objectives_ls, metrics_ls
+        return decisions_ls, objectives_ls, metrics_ls, constraints_ls
 
 
 class BorgRuntimeDiagnostic(BorgRuntimeUtils):
@@ -132,6 +142,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         n_decisions,
         n_objectives,
         n_metrics,
+        n_constraints,
     ):
         """
         Parsing runtime file and assigning parameters
@@ -159,6 +170,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.n_decisions = n_decisions
         self.n_objectives = n_objectives
         self.n_metrics = n_metrics
+        self.n_constraints = n_constraints
 
         # Defaults
         self.decision_names = [
@@ -169,6 +181,9 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         ]
         self.metric_names = [
             'metric_' + str(i+1) for i in range(n_metrics)
+        ]
+        self.constraint_names = [
+            'constraint_' + str(i+1) for i in range(n_constraints)
         ]
 
         # Runtime statistics
@@ -192,15 +207,26 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.undx = df_res['UNDX'].to_dict()
 
         # Parsing archives
-        decisions_ls, objectives_ls, metrics_ls = self._parse_archive(
+        decisions_ls, objectives_ls, metrics_ls, constraints_ls = self._parse_archive(
             df_raw,
             self.n_decisions,
             self.n_objectives,
-            self.n_metrics
+            self.n_metrics,
+            self.n_constraints
         )
         self.archive_decisions = dict(zip(self.nfe, decisions_ls))
         self.archive_objectives = dict(zip(self.nfe, objectives_ls))
         self.archive_metrics = dict(zip(self.nfe, metrics_ls))
+        self.archive_constraints = dict(zip(self.nfe, constraints_ls))
+
+    def get_first_feasible(self):
+        feasible = []
+        for nfe, cons in self.archive_constraints.items():
+            if all(c == 0 for c in cons[0]):
+                feasible.append(nfe)
+        first_feasible = min(feasible)
+
+        return first_feasible
 
     def normalize_archive_objectives(self):
         # uses cumulative nadir point to normalize all objective values (max value = 1)
@@ -247,6 +273,15 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             Metric names
         """
         self.metric_names = metric_names
+
+    def set_constraint_names(self, constraint_names):
+        """Set constraint names
+        Parameters
+        ----------
+        constraint_names : list
+            Constraint names
+        """
+        self.constraint_names = constraint_names
 
     def get_snapshots(self, num_intervals=200, n_obj=8):
         # Extracts snapshots of runtime file values at desired intervals of FEs
