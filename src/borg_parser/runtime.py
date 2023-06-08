@@ -221,8 +221,11 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
     def get_first_feasible(self):
         feasible = []
+        violations = {}
+        #print(self.archive_constraints.items())
         for nfe, cons in self.archive_constraints.items():
-            if all(c == 0 for c in cons[0]):
+            violations[nfe] = max([sum(c) for c in cons])
+            if violations[nfe] == 0:
                 feasible.append(nfe)
         first_feasible = min(feasible)
 
@@ -369,12 +372,6 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         for nfe, objs in self.archive_objectives.items():
             # Compute hypervolume
-
-            #pymooo version - haven't gotten it to finish calculating
-            #obj_array= np.array(objs)
-            # hv = pymoo.indicators.hv.Hypervolume(ref_point=reference_point)
-            # hv_val = hv.do(obj_array)
-
             hv = pygmo.hypervolume(objs)
             hv_val = hv.compute(ref_point=reference_point)
 
