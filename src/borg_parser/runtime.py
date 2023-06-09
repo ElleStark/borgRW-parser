@@ -383,7 +383,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
     def compute_real_nadir(self):
         """Compute realized nadir points (max of each objective value in set of solutions)
         Stores values in a dictionary of Lists of objective values at nadir for each NFE,
-        Also stores lis max objective values at any nadir for all NFEs (useful for plotting normalization)
+        Also stores list of max objective values at any nadir for all NFEs (useful for plotting normalization)
         see Blank and Deb 2020 for use of realized nadir as part of MOEA termination criterion
         Parameters
         ----------
@@ -406,7 +406,9 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
     def compute_real_ideal(self):
         """Compute realized ideal point (min of each objective value in set of solutions)
-        # see Blank and Deb 2020 for use of this metric as MOEA termination criterion
+        Stores values in a dictionary of Lists of objective values at ideal for each NFE,
+        Also stores list of min objective values at any ideal for all NFEs (useful for plotting normalization)
+        see Blank and Deb 2020 for use of realized ideal as part of MOEA termination criterion
         Parameters
         ----------
         """
@@ -818,13 +820,59 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         # Create Powell Plot
         color_col = "Powell_Tier_Elevation_DV.txt Row cat 0"
         powell_exp = hip.Experiment.from_dataframe(df_powell_decs)
-        powell_exp.parameters_definition[color_col].colormap = 'interpolateViridis'
+        powell_exp.parameters_definition[color_col].colormap = 'schemeSpectral[5]'
         # Force axes ranges to same min/max; useful for comparing different plots
         if powell_dec_ranges is not None:
             for name, low, high in powell_dec_ranges:
                 powell_exp.parameters_definition[name].force_range(low, high)
 
         return mead_exp, powell_exp
+
+    def plot_objectives_multiple_nfes(self, nfe_interval=5000):
+        """
+        Create interactive parallel plot of objective values for archive solutions at multiple FEs
+        Returns
+        -------
+        hiplot.experiment.Experiment
+            Hiplot experiment
+        """
+
+        # List of nfe values. Runtime file skips nfe values at unpredictable intervals (due to restarts, etc),
+        # So need to find nearest actual nfe value to desired nfe intervals
+        nfe_list = []
+        nfe_targets = list(range(0, self.nfe[-1]+1, nfe_interval))
+        for nfe in nfe_targets:
+            while nfe not in self.nfe:
+                nfe += 1
+            nfe_list.append(nfe)
+
+        col_names = ['NFE', self.objective_names]
+
+        df_objs = pd.DataFrame()
+        for nfe in nfe_list:
+            df_temp = pd.DataFrame(
+                self.archive_objectives[nfe],
+                columns=self.objective_names
+            )
+            df_temp.insert(loc=0, column='NFE', value=nfe)
+            df_objs = pd.concat([df_objs, df_temp])
+
+        # Create Plot
+        cols = col_names
+        #cols.reverse()
+        color_col = 'NFE'
+        exp = hip.Experiment.from_dataframe(df_objs)
+        exp.parameters_definition[color_col].colormap = 'interpolateTurbo'
+        exp.parameters_definition["NFE"].type = hip.ValueType.NUMERIC
+        exp.display_data(hip.Displays.PARALLEL_PLOT).update(
+            {'order': cols,
+             'invert': ['NFE']}
+        )
+        exp.display_data(hip.Displays.TABLE).update(
+            {'hide': ['uid', 'from_uid']}
+        )
+
+        return exp
 
 class BorgRuntimeAggregator():
     """

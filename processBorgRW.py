@@ -3,7 +3,7 @@
 import borg_parser
 from matplotlib import pyplot as plt
 from celluloid import Camera
-import visualization_functions
+#import visualization_functions
 
 
 def main():
@@ -55,21 +55,14 @@ def main():
         "Max.LB.Short", "Max.Delta.Short",
         ]
 
-    # ranges used for parallel coordinates plotting
+    # Hard-coded ranges used for parallel coordinates plotting, if desired.
+    # Below ranges based on final extremes of 20000FE run.
     objective_ranges = [
-        ('Powell_3490', 0, 25), ('Powell_WY_Release', 8600000, 8780000),
-        ('Lee_Ferry_Deficit', 0, 15), ('Avg_Combo_Shortage', -13900000, -11200000),
-        ('Mead_1000', 0, 50), ('LB_Shortage_Volume', 940000, 1130000),
-        ('Max_Annual_LB_Shortage', 1400000, 2400000), ('Max_Delta_Annual_Shortage', 900000, 2400000)
+        ('Powell_3490', 1.5, 27), ('Powell_WY_Release', 8827664, 8614975),
+        ('Lee_Ferry_Deficit', 0, 17.5), ('Avg_Combo_Shortage', -14226588, -10804344),
+        ('Mead_1000', 5, 48), ('LB_Shortage_Volume', 947800, 1126251),
+        ('Max_Annual_LB_Shortage', 1250000, 2400000), ('Max_Delta_Annual_Shortage', 700000, 2400000)
     ]
-
-# Very wide range of objectives:
-    # objective_ranges = [
-    #     ('Powell_3490', 0, 100), ('Powell_WY_Release', 8000000, 9500000),
-    #     ('Lee_Ferry_Deficit', 0, 100), ('Avg_Combo_Shortage', -21000000, -4000000),
-    #     ('Mead_1000', 0, 100), ('LB_Shortage_Volume', 500000, 1700000),
-    #     ('Max_Annual_LB_Shortage', 0, 2400000), ('Max_Delta_Annual_Shortage', 0, 2400000)
-    # ]
 
     metric_names = []
 
@@ -89,8 +82,12 @@ def main():
     runtime.set_constraint_names(constraint_names)
 
     # Get NFEs to first feasible solution
-    #first_feasible = runtime.get_first_feasible()
-    #print(first_feasible)
+    first_feasible = runtime.get_first_feasible()
+    print(first_feasible)
+
+    # Parallel coordinates plot of objectives at multiple NFEs
+    obj_plot = runtime.plot_objectives_multiple_nfes()
+    obj_plot.to_html("borgRW_objectives_nfes.html")
 
     # Animated dashboard, code modified from David Gold's runtimeDiagnostics library
     # source: https://github.com/davidfgold/runtimeDiagnostics/blob/master/rutime_vis_main.py
@@ -169,8 +166,6 @@ def main():
     ideal_plot.savefig('ideal_change.jpg')
 
     # Hypervolume
-    #reference = [0, 0, 0, -60000000, 0, 0, 0, 0]
-    #reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
     hv_plot = runtime.plot_hypervolume()
     hv_plot.savefig("borgRW_hypervolume.jpg")
 
