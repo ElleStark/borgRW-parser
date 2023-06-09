@@ -312,8 +312,8 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.normalize_archive_objectives()
 
         # Compute relevant metrics
-        reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
-        self.compute_hypervolume(reference)
+        #reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
+        self.compute_hypervolume()
         hypervolume = np.zeros(n)
 
         i = 0
@@ -368,7 +368,8 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         hypervolume_dict = {}
         if reference_point is None:
             self.compute_real_nadir()
-            reference_point = np.add(self.max_nadir, abs(self.max_nadir * 0.05)) # offset by 5% to ensure strictly greater than other points
+            reference_point = self.max_nadir
+            #reference_point = np.add(self.max_nadir, abs(self.max_nadir * 0.05)) # offset by 5% to ensure strictly greater than other points
 
         for nfe, objs in self.archive_objectives.items():
             # Compute hypervolume
@@ -389,17 +390,25 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         ----------
         """
         # Setup
-        max_nadir = np.full(self.n_objectives, -20000000)
+        #max_nadir = np.full(self.n_objectives, -20000000)
         nadir_points_dict = {}
+        nadir_list = []
 
         for nfe, objs in self.archive_objectives.items():
-            # Compute realized nadir point using pygmo refpoint()
+            # Compute realized nadir point for each NFE using pygmo refpoint()
+            # Use refpoint instead of nadir function because using non-dominated archive solutions
+            # So no need to run more computationally demand nadir function that performs non-dominated sort
             hv = pygmo.hypervolume(objs)
             nadir = hv.refpoint()
 
             # Store values
             nadir_points_dict[nfe] = nadir
-            max_nadir[max_nadir < nadir] = nadir[max_nadir < nadir]
+            nadir_list.append(nadir)
+
+        # Find the realized nadir point across all NFEs (max of each objective in any archive)
+        # For use as reference point for hypervolume calcs over time
+        hv_nad = pygmo.hypervolume(nadir_list)
+        max_nadir = hv_nad.refpoint()
 
         self.max_nadir = max_nadir
         self.nadir_points = nadir_points_dict

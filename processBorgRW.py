@@ -81,89 +81,89 @@ def main():
     runtime.set_metric_names(metric_names)
     runtime.set_constraint_names(constraint_names)
 
-    # Get NFEs to first feasible solution
-    first_feasible = runtime.get_first_feasible()
-    print(first_feasible)
-
-    # Parallel coordinates plot of objectives at multiple NFEs
-    obj_plot = runtime.plot_objectives_multiple_nfes()
-    obj_plot.to_html("borgRW_objectives_nfes.html")
-
-    # Animated dashboard, code modified from David Gold's runtimeDiagnostics library
-    # source: https://github.com/davidfgold/runtimeDiagnostics/blob/master/rutime_vis_main.py
-    # blog post: https://waterprogramming.wordpress.com/2020/05/06/beyond-hypervolume-dynamic-visualization-of-moea-runtime/
-    ################### Diagnostic Dashboard ##############################
-
-    # Get snapshots of run at desired frequency (since our runtime has every FE) - added by EStark
-    # Number of intervals is approximate, since Runtime file doesn't have predictable FE intervals (due to restarts etc)
-    # This code uses floor division for index sampling interval to get close to number of desired intervals
-    n_intervals = 200
-    snaps = runtime.get_snapshots(n_intervals)
-    objs = snaps['Objectives']
-    HV = snaps['Hypervolume']
-
-    # create the figure object to store subplots
-    fig = plt.figure(figsize=(12, 12))
-    gs = fig.add_gridspec(4, 2)
-
-    # information axis
-    text_ax = fig.add_subplot(gs[0:1, 0])
-
-    # 3D scatter axis
-    #scatter_ax = fig.add_subplot(gs[0:2, 1], projection='3d')
-
-    # parallel axis plot axis
-    px_ax = fig.add_subplot(gs[1, :])
-
-    # HV axis
-    HV_ax = fig.add_subplot(gs[2, :])
-
-    # Change in ideal axis
-    # ideal_ax = fig.add_subplot(gs[4, :])
-
-    # operator probabilities
-    op_ax = fig.add_subplot(gs[3, :])
-
-    # set up camera for animation
-    camera = Camera(fig)
-    freq = snaps['NFE'][1] - snaps['NFE'][0]
-    total_NFE = snaps['NFE'][-1]
-
-    # loop through runtime snapshots and plot data
-    # capture each with camera
-    for i in range(0, len(snaps['NFE'])):
-        visualization_functions.plot_text(text_ax, 'Baseline', 8, snaps, i)
-        #visualization_functions.plot_3Dscatter(scatter_ax, objs_3, i)
-        visualization_functions.plot_operators(op_ax, snaps, total_NFE, i)
-        visualization_functions.plot_metric(HV_ax, HV, "Hypervolume", snaps['NFE'], total_NFE, HV[-1], i)
-        visualization_functions.plot_paxis(px_ax, objs, i, objective_names)
-        fig.tight_layout()
-        camera.snap()
-
-    # use Celluloid to stitch animation
-    animation = camera.animate()
-
-    animation.save('BorgRW_runtime.gif', writer='PillowWriter')
-################################ End Animations #########################################
-
-    # Improvements
-    fig = runtime.plot_improvements()
-    fig.savefig("borgRW_improvements.jpg")
-
-    # Objectives
-    obj_plot = runtime.plot_objectives_parcoord()
-    obj_plot.to_html("borgRW_objectives.html")
-
-    # Decisions
-    mead_plot, powell_plot = runtime.plot_decisions_parcoord()
-    mead_plot.to_html('borgRW_mead_decisions.html')
-    powell_plot.to_html('borgRW_powell_decisions.html')
-
-    # Extreme Point metrics
-    nadir_plot = runtime.plot_real_nadir_change()
-    nadir_plot.savefig('nadir_change.jpg')
-    ideal_plot = runtime.plot_real_ideal_change()
-    ideal_plot.savefig('ideal_change.jpg')
+#     # Get NFEs to first feasible solution
+#     first_feasible = runtime.get_first_feasible()
+#     print(first_feasible)
+#
+#     # Parallel coordinates plot of objectives at multiple NFEs
+#     obj_plot = runtime.plot_objectives_multiple_nfes()
+#     obj_plot.to_html("borgRW_objectives_nfes.html")
+#
+#     # Animated dashboard, code modified from David Gold's runtimeDiagnostics library
+#     # source: https://github.com/davidfgold/runtimeDiagnostics/blob/master/rutime_vis_main.py
+#     # blog post: https://waterprogramming.wordpress.com/2020/05/06/beyond-hypervolume-dynamic-visualization-of-moea-runtime/
+#     ################### Diagnostic Dashboard ##############################
+#
+#     # Get snapshots of run at desired frequency (since our runtime has every FE) - added by EStark
+#     # Number of intervals is approximate, since Runtime file doesn't have predictable FE intervals (due to restarts etc)
+#     # This code uses floor division for index sampling interval to get close to number of desired intervals
+#     n_intervals = 200
+#     snaps = runtime.get_snapshots(n_intervals)
+#     objs = snaps['Objectives']
+#     HV = snaps['Hypervolume']
+#
+#     # create the figure object to store subplots
+#     fig = plt.figure(figsize=(12, 12))
+#     gs = fig.add_gridspec(4, 2)
+#
+#     # information axis
+#     text_ax = fig.add_subplot(gs[0:1, 0])
+#
+#     # 3D scatter axis
+#     #scatter_ax = fig.add_subplot(gs[0:2, 1], projection='3d')
+#
+#     # parallel axis plot axis
+#     px_ax = fig.add_subplot(gs[1, :])
+#
+#     # HV axis
+#     HV_ax = fig.add_subplot(gs[2, :])
+#
+#     # Change in ideal axis
+#     # ideal_ax = fig.add_subplot(gs[4, :])
+#
+#     # operator probabilities
+#     op_ax = fig.add_subplot(gs[3, :])
+#
+#     # set up camera for animation
+#     camera = Camera(fig)
+#     freq = snaps['NFE'][1] - snaps['NFE'][0]
+#     total_NFE = snaps['NFE'][-1]
+#
+#     # loop through runtime snapshots and plot data
+#     # capture each with camera
+#     for i in range(0, len(snaps['NFE'])):
+#         visualization_functions.plot_text(text_ax, 'Baseline', 8, snaps, i)
+#         #visualization_functions.plot_3Dscatter(scatter_ax, objs_3, i)
+#         visualization_functions.plot_operators(op_ax, snaps, total_NFE, i)
+#         visualization_functions.plot_metric(HV_ax, HV, "Hypervolume", snaps['NFE'], total_NFE, HV[-1], i)
+#         visualization_functions.plot_paxis(px_ax, objs, i, objective_names)
+#         fig.tight_layout()
+#         camera.snap()
+#
+#     # use Celluloid to stitch animation
+#     animation = camera.animate()
+#
+#     animation.save('BorgRW_runtime.gif', writer='PillowWriter')
+# ################################ End Animations #########################################
+#
+#     # Improvements
+#     fig = runtime.plot_improvements()
+#     fig.savefig("borgRW_improvements.jpg")
+#
+#     # Objectives
+#     obj_plot = runtime.plot_objectives_parcoord()
+#     obj_plot.to_html("borgRW_objectives.html")
+#
+#     # Decisions
+#     mead_plot, powell_plot = runtime.plot_decisions_parcoord()
+#     mead_plot.to_html('borgRW_mead_decisions.html')
+#     powell_plot.to_html('borgRW_powell_decisions.html')
+#
+#     # Extreme Point metrics
+#     nadir_plot = runtime.plot_real_nadir_change()
+#     nadir_plot.savefig('nadir_change.jpg')
+#     ideal_plot = runtime.plot_real_ideal_change()
+#     ideal_plot.savefig('ideal_change.jpg')
 
     # Hypervolume
     hv_plot = runtime.plot_hypervolume()
