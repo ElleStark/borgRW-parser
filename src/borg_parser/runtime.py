@@ -2,14 +2,11 @@
 
 import pandas as pd
 import numpy as np
-import pymoo.indicators.hv
 from more_itertools import consecutive_groups
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pygmo
 import hiplot as hip
-#from pymoo.indicators.hv import Hypervolume
-import pymoo
 
 sns.set()
 
@@ -489,6 +486,40 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.nadir_change = nadir_change_dict
         self.ideal_change = ideal_change_dict
 
+    def get_NFEs_from_targets(self, target_list):
+        # Takes list of desired NFEs and finds list of actual NFEs in Runtime file.
+        # Since Runtime file unpredictably skips NFEs due to restarts, etc
+        # If target NFE value not present, finds next NFE value GREATER THAN target
+        nfe_targets = target_list
+        nfe_list = []
+
+        for nfe in nfe_targets:
+            while nfe not in self.nfe:
+                nfe += 1
+            nfe_list.append(nfe)
+
+        return nfe_list
+
+    def get_objective_ranges(self):
+        """
+        Find min and max of each objective over entire run
+        Create list for use in plotting objectives parallel coordinates
+        Returns
+        -------
+        List of tuples in the form (Objective_Name, Min_Value, Max_Value)
+        """
+        self.compute_real_ideal()
+        self.compute_real_nadir()
+
+        # Convert numpy arrays to float data type to avoid JSON serialization error when using HiPlot
+        min_objs = self.min_ideal.astype(dtype=float)
+        max_objs = self.max_nadir.astype(dtype=float)
+
+        obj_ranges = list(zip(min_objs, max_objs))
+
+        return obj_ranges
+
+        # List of tuples with (
     def plot_improvements(
         self,
         y_lab='Improvements',
@@ -508,37 +539,6 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         -------
         matplotlib.figure.Figure
             Plot of improvements
-        """
-        # Get data
-        df = pd.Series(self.improvements).to_frame().reset_index()
-
-        # Plot
-        fig = plt.figure()
-        sns.lineplot(data=df, x='index', y=0)
-        plt.ylabel(y_lab)
-        plt.xlabel(x_lab)
-
-        return fig
-
-    def plot_constraint_violations(
-        self,
-        y_lab='value',
-        x_lab='Function Evaluations'
-    ):
-        """
-        Plot constraint violations over the search
-
-        Parameters
-        ----------
-        y_lab : str
-            Y label
-        x_lab : str
-            X label
-
-        Returns
-        -------
-        matplotlib.figure.Figure
-            Plot of constraint violations
         """
         # Get data
         df = pd.Series(self.improvements).to_frame().reset_index()
@@ -709,49 +709,8 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         plt.xlabel('Function Evaluations')
 
         return fig
-    def plot_interactive_front(self):
-        """
-        Create interactive parallel plot
-        Returns
-        -------
-        hiplot.experiment.Experiment
-            Hiplot experiment
-        """
-        # Get final front
-        nfe = self.nfe[-1]
-        df_decs = pd.DataFrame(
-            self.archive_decisions[nfe],
-            columns=self.decision_names
-        )
-        df_objs = pd.DataFrame(
-            self.archive_objectives[nfe],
-            columns=self.objective_names
-        )
-        df_metrics = pd.DataFrame(
-            self.archive_metrics[nfe],
-            columns=self.metric_names
-        )
-        df_front = pd.concat([df_decs, df_objs, df_metrics], axis=1)
 
-        # Create Plot
-        cols = \
-            self.decision_names +\
-            self.objective_names +\
-            self.metric_names
-        cols.reverse()
-        color_col = self.objective_names[0]
-        exp = hip.Experiment.from_dataframe(df_front)
-        exp.parameters_definition[color_col].colormap = 'interpolateViridis'
-        exp.display_data(hip.Displays.PARALLEL_PLOT).update(
-            {'order': cols}
-        )
-        exp.display_data(hip.Displays.TABLE).update(
-            {'hide': ['uid', 'from_uid']}
-        )
-
-        return exp
-
-    def plot_objectives_parcoord(self, obj_ranges=None):
+    def plot_objectives_parcoord(self, obj_ranges, nfe=None):
         """
         Create interactive parallel plot of objective values for archive solutions
         Returns
@@ -760,36 +719,45 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             Hiplot experiment
         """
         # Get final front
-        nfe = self.nfe[-1]
-        """
-        df_decs = pd.DataFrame(
-            self.archive_decisions[nfe],
-            columns=self.decision_names
-        )
-        """
+        if nfe is None:
+            nfe = self.nfe[-1]
+        else:
+            nfe = nfe
+
+        new_ranges = []
+
+        col_names = [name + '.FE' + str(nfe) for name in self.objective_names]
+        for i in range(len(col_names)):
+            new_ranges.append([col_names[i]] + list(obj_ranges[i]))
+        print(new_ranges)
+
+        obj_ranges = new_ranges
+
         df_objs = pd.DataFrame(
             self.archive_objectives[nfe],
-            columns=self.objective_names
+            columns=col_names
         )
 
         # Create Plot
-        cols = self.objective_names
+        cols = col_names
         cols.reverse()
-        color_col = self.objective_names[0]
+        color_col = col_names[3] # color by Mead.1000
         exp = hip.Experiment.from_dataframe(df_objs)
         exp.parameters_definition[color_col].colormap = 'interpolateViridis'
+        exp.parameters_definition[col_names[5]].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
         exp.display_data(hip.Displays.PARALLEL_PLOT).update(
-            {'order': cols}
+            {'order': cols,
+             'hide': ['uid', 'from_uid']}
         )
         exp.display_data(hip.Displays.TABLE).update(
             {'hide': ['uid', 'from_uid']}
         )
-
         # Force axes ranges to same min/max; useful for comparing different plots
-        if obj_ranges is not None:
-            for name, low, high in obj_ranges:
-                exp.parameters_definition[name].force_range(low, high)
-
+        #if obj_ranges is not None:
+        #for r in obj_ranges:
+        for name, low, high in obj_ranges:
+            exp.parameters_definition[name].force_range(low, high)
+            print(low)
 
         return exp
 
@@ -882,7 +850,6 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         )
 
         return exp
-
 class BorgRuntimeAggregator():
     """
     Agregate multiple runs of borg multi-objective algorithm runtime objects
