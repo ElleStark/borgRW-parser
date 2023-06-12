@@ -729,7 +729,6 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         col_names = [name + '.FE' + str(nfe) for name in self.objective_names]
         for i in range(len(col_names)):
             new_ranges.append([col_names[i]] + list(obj_ranges[i]))
-        print(new_ranges)
 
         obj_ranges = new_ranges
 
@@ -757,7 +756,6 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         #for r in obj_ranges:
         for name, low, high in obj_ranges:
             exp.parameters_definition[name].force_range(low, high)
-            print(low)
 
         return exp
 

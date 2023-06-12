@@ -3,10 +3,11 @@
 import borg_parser
 from matplotlib import pyplot as plt
 from celluloid import Camera
+import visualization_functions
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T4_FE5000_2C_8Traces/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -70,16 +71,16 @@ def main():
     runtime.set_metric_names(metric_names)
     runtime.set_constraint_names(constraint_names)
 
-    # Get NFEs to first feasible solution
+    Get NFEs to first feasible solution
     first_feasible = runtime.get_first_feasible()
     print(first_feasible)
 
-    # Parallel coordinates plot of objectives at multiple NFEs
+    Parallel coordinates plot of objectives at multiple NFEs
     obj_plot = runtime.plot_objectives_multiple_nfes()
     obj_plot.to_html("borgRW_objectives_nfes.html")
 
-    # Separate parallel coordinates plots for objectives at each NFE
-    nfe_targets = [1000, 4000, 10000, 20000]
+    Separate parallel coordinates plots for objectives at each NFE
+    nfe_targets = [500, 1000, 4000, 5000]
     nfe_list = runtime.get_NFEs_from_targets(target_list=nfe_targets)
     obj_ranges = runtime.get_objective_ranges()
     for nfe in nfe_list:
@@ -96,7 +97,7 @@ def main():
     # Get snapshots of run at desired frequency (since our runtime has many FEs)
     # Number of intervals is approximate, since Runtime file doesn't have predictable FE intervals (due to restarts etc)
     # This code uses floor division to calculate sampling interval to get close to number of desired intervals
-    n_intervals = 200
+    n_intervals = 50
     snaps = runtime.get_snapshots(n_intervals)
     objs = snaps['Objectives']
     HV = snaps['Hypervolume']
@@ -136,15 +137,15 @@ def main():
     animation = camera.animate()
 
     animation.save('BorgRW_runtime.gif', writer='PillowWriter')
-################################ End Animated Dashboard #########################################
+############################### End Animated Dashboard #########################################
 
     # Improvements (epsilon progress) vs. NFEs line plot
     fig = runtime.plot_improvements()
     fig.savefig("borgRW_improvements.jpg")
 
     # Objectives parallel coordinates plot (final archive)
-    obj_plot = runtime.plot_objectives_parcoord()
-    obj_plot.to_html("borgRW_objectives.html")
+    # obj_plot = runtime.plot_objectives_parcoord()
+    # obj_plot.to_html("borgRW_objectives.html")
 
     # Decisions parallel coordinates plot (final archive)
     mead_plot, powell_plot = runtime.plot_decisions_parcoord()
