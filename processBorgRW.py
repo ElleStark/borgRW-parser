@@ -71,15 +71,15 @@ def main():
     runtime.set_metric_names(metric_names)
     runtime.set_constraint_names(constraint_names)
 
-    Get NFEs to first feasible solution
+    # Get NFEs to first feasible solution
     first_feasible = runtime.get_first_feasible()
     print(first_feasible)
 
-    Parallel coordinates plot of objectives at multiple NFEs
+    # Parallel coordinates plot of objectives at multiple NFEs
     obj_plot = runtime.plot_objectives_multiple_nfes()
     obj_plot.to_html("borgRW_objectives_nfes.html")
 
-    Separate parallel coordinates plots for objectives at each NFE
+    # Separate parallel coordinates plots for objectives at each NFE
     nfe_targets = [500, 1000, 4000, 5000]
     nfe_list = runtime.get_NFEs_from_targets(target_list=nfe_targets)
     obj_ranges = runtime.get_objective_ranges()
