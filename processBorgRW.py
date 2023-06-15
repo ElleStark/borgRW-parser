@@ -7,7 +7,7 @@ import visualization_functions
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T4_FE5000_2C_8Traces/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T5_FE2000_NoC_8Traces/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -56,7 +56,7 @@ def main():
 
     metric_names = []
 
-    constraint_names = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8']
+    constraint_names = []
 
     # Create runtime object
     runtime = borg_parser.BorgRuntimeDiagnostic(
@@ -76,11 +76,11 @@ def main():
     print(first_feasible)
 
     # Parallel coordinates plot of objectives at multiple NFEs
-    obj_plot = runtime.plot_objectives_multiple_nfes()
-    obj_plot.to_html("borgRW_objectives_nfes.html")
+    # obj_plot = runtime.plot_objectives_multiple_nfes()
+    # obj_plot.to_html("borgRW_objectives_nfes.html")
 
     # Separate parallel coordinates plots for objectives at each NFE
-    nfe_targets = [500, 1000, 4000, 5000]
+    nfe_targets = [500, 1000, 1889]
     nfe_list = runtime.get_NFEs_from_targets(target_list=nfe_targets)
     obj_ranges = runtime.get_objective_ranges()
     for nfe in nfe_list:
@@ -144,8 +144,11 @@ def main():
     fig.savefig("borgRW_improvements.jpg")
 
     # Objectives parallel coordinates plot (final archive)
-    # obj_plot = runtime.plot_objectives_parcoord()
-    # obj_plot.to_html("borgRW_objectives.html")
+    obj_ranges = [[0, 100], [8600000, 9260000], [0, 17.5], [-14300000, -8300000], [0, 50], [760000, 1130000],
+                  [1250000, 2400000], [700000, 2400000]]
+    nfe = runtime.get_NFEs_from_targets(target_list=[1889])
+    obj_plot = runtime.plot_objectives_parcoord(obj_ranges=obj_ranges, nfe=nfe[0])
+    obj_plot.to_html("borgRW_objectives.html")
 
     # Decisions parallel coordinates plot (final archive)
     mead_plot, powell_plot = runtime.plot_decisions_parcoord()

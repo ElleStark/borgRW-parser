@@ -376,7 +376,13 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             # Store value
             hypervolume_dict[nfe] = hv_val
 
-        self.hypervolume = hypervolume_dict
+        # Normalize hypervolume by hypervolume of final set
+        ref_hv = hypervolume_dict[self.nfe[-1]]
+        hypervolume_norm = {}
+        for nfe in hypervolume_dict:
+            hypervolume_norm[nfe] = hypervolume_dict[nfe]/ref_hv
+
+        self.hypervolume = hypervolume_norm
 
     def compute_real_nadir(self):
         """Compute realized nadir points (max of each objective value in set of solutions)
@@ -848,142 +854,4 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         )
 
         return exp
-class BorgRuntimeAggregator():
-    """
-    Agregate multiple runs of borg multi-objective algorithm runtime objects
-    """
-    def __init__(
-        self,
-        runtime_objs,
-    ):
-        """Initilization
-        Parameters
-        ----------
-        runtime_objs : dict
-            Dictionary with keys of run name and values being runtime
-             objects
-        """
-        self.runs = runtime_objs
 
-    def plot_hypervolume(self, reference_point):
-        """
-        Plot hypervolume over the search
-        Parameters
-        ----------
-        reference_point : list
-            Reference point for hypervolume calculation
-        Returns
-        -------
-        matplotlib.figure.Figure
-            Plot of improvments
-        """
-        # Setup
-        df_ls = []
-
-        # Computing hypervolume
-        for run_name, run_obj in self.runs.items():
-            df_run = pd.DataFrame()
-            run_obj.compute_hypervolume(reference_point)
-            df_run['hypervolume'] = pd.Series(run_obj.hypervolume)
-            df_run['run_name'] = run_name
-            df_run['nfe'] = df_run.index
-            df_ls.append(df_run)
-        df = pd.concat(df_ls)
-
-        # Plotting
-        fig, ax = plt.subplots()
-        sns.lineplot(data=df, x='nfe', y='hypervolume', hue='run_name', ax=ax)
-        plt.ylabel('Hypervolume')
-        plt.xlabel('Function Evaluations')
-        ax.legend(title='Run')
-
-        return fig
-
-    # def plot_real_nadir(self):
-    #     """
-    #     Plot hypervolume over the search
-    #     Parameters
-    #     ----------
-    #     reference_point : list
-    #         Reference point for hypervolume calculation
-    #     Returns
-    #     -------
-    #     matplotlib.figure.Figure
-    #         Plot of improvments
-    #     """
-    #     # Setup
-    #     df_ls = []
-    #
-    #     # Computing hypervolume
-    #     for run_name, run_obj in self.runs.items():
-    #         df_run = pd.DataFrame()
-    #         run_obj.compute_real_nadir()
-    #         df_run['hypervolume'] = pd.Series(run_obj.hypervolume)
-    #         df_run['run_name'] = run_name
-    #         df_run['nfe'] = df_run.index
-    #         df_ls.append(df_run)
-    #     df = pd.concat(df_ls)
-    #
-    #     # Plotting
-    #     fig, ax = plt.subplots()
-    #     sns.lineplot(data=df, x='nfe', y='hypervolume', hue='run_name', ax=ax)
-    #     plt.ylabel('Hypervolume')
-    #     plt.xlabel('Function Evaluations')
-    #     ax.legend(title='Run')
-    #
-    #     return fig
-    def plot_interactive_front(self):
-        """
-        Plot interactive front at final search
-        Returns
-        -------
-        matplotlib.figure.Figure
-            Plot of improvments
-        """
-        # Setup
-        df_ls = []
-
-        for run_name, run_obj in self.runs.items():
-            # Extract total function evaluations
-            nfe = run_obj.nfe[-1]
-
-            # Get front
-            df_decs = pd.DataFrame(
-                run_obj.archive_decisions[nfe],
-                columns=run_obj.decision_names
-            )
-            df_objs = pd.DataFrame(
-                run_obj.archive_objectives[nfe],
-                columns=run_obj.objective_names
-            )
-            df_metrics = pd.DataFrame(
-                run_obj.archive_metrics[nfe],
-                columns=run_obj.metric_names
-            )
-            df_front = pd.concat([df_decs, df_objs, df_metrics], axis=1)
-            df_front['run_name'] = run_name
-
-            # Store
-            df_ls.append(df_front)
-
-        # Making parent dataframe
-        df = pd.concat(df_ls)
-
-        # Create Plot
-        cols = \
-            run_obj.decision_names +\
-            run_obj.objective_names +\
-            run_obj.metric_names +\
-            ['run_name']
-        cols.reverse()
-        color_col = 'run_name'
-        exp = hip.Experiment.from_dataframe(df)
-        exp.parameters_definition[color_col].colormap = 'schemeDark2'
-        exp.display_data(hip.Displays.PARALLEL_PLOT).update(
-            {'order': cols, 'hide': ['uid']},
-        )
-        exp.display_data(hip.Displays.TABLE).update(
-            {'hide': ['uid', 'from_uid']}
-        )
-
-        return exp
