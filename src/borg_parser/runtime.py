@@ -219,7 +219,6 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
     def get_first_feasible(self):
         feasible = []
         violations = {}
-        #print(self.archive_constraints.items())
         for nfe, cons in self.archive_constraints.items():
             violations[nfe] = max([sum(c) for c in cons])
             if violations[nfe] == 0:
@@ -376,13 +375,13 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             # Store value
             hypervolume_dict[nfe] = hv_val
 
-        # Normalize hypervolume by hypervolume of final set
+        # Normalize hypervolume by hypervolume of final set if desired
         ref_hv = hypervolume_dict[self.nfe[-1]]
         hypervolume_norm = {}
         for nfe in hypervolume_dict:
             hypervolume_norm[nfe] = hypervolume_dict[nfe]/ref_hv
 
-        self.hypervolume = hypervolume_norm
+        self.hypervolume = hypervolume_dict
 
     def compute_real_nadir(self):
         """Compute realized nadir points (max of each objective value in set of solutions)
@@ -439,7 +438,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.min_ideal = min_ideal
         self.real_ideal = ideal_dict
 
-    def compute_extreme_pt_changes(self):
+    def compute_extreme_pt_changes(self, tau_ideal=None, tau_nadir=None):
         """Compute change in realized nadir point (min of each objective value in set of solutions)
         # see Blank and Deb 2020 for use of this metric as MOEA termination criterion
         Parameters
@@ -463,8 +462,14 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
             tau_key = nfe
 
         # For smoother curve, normalize all values by nadir - ideal at final timestep
-        tau_ideal = ideal_dict[tau_key]
-        tau_nadir = nadir_dict[tau_key]
+        if tau_ideal is None:
+            tau_ideal = ideal_dict[tau_key]
+        else:
+            tau_ideal = tau_ideal
+        if tau_nadir is None:
+            tau_nadir = nadir_dict[tau_key]
+        else:
+            tau_nadir = tau_nadir
         norm = tau_nadir - tau_ideal
 
         # for each NFE, calculate running normalized change
