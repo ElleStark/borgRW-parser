@@ -14,10 +14,6 @@ def main():
                      '2 Scaled Constraints': 'data/T4_FE5000_2C_8Traces/RunTime.Parsable.txt',
                      '4 Unscaled Constraints': 'data/T3_FE20000_allC_8Traces_partial5.31/RunTime.Parsable.txt'}
 
-    # constraint_dict = {'No Constraints': [],
-    #                    '2 Scaled Constraints': ['Mead.1000', 'LB.Short.Vol'],
-    #                    '4 Unscaled Constraints': ['Powell.3490', 'LF.Def', 'Mead.1000', 'LB.Short.Vol']}
-
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
                       "Mead_Shortage_e_DV Row cat 0",

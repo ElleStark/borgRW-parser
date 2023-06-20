@@ -4,10 +4,11 @@ import borg_parser
 from matplotlib import pyplot as plt
 from celluloid import Camera
 import visualization_functions
+import pandas as pd
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T4_FE5000_2C_8Traces/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T3_FE20000_allC_8Traces/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -56,7 +57,7 @@ def main():
 
     metric_names = []
 
-    constraint_names = []
+    constraint_names = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8']
 
     # Create runtime object
     runtime = borg_parser.BorgRuntimeDiagnostic(
@@ -71,6 +72,14 @@ def main():
     runtime.set_metric_names(metric_names)
     runtime.set_constraint_names(constraint_names)
 
+    # Get objective values from final archive as csv
+    nfe = runtime.nfe[-1]
+    df_objs = pd.DataFrame(
+        runtime.archive_objectives[nfe],
+        columns=runtime.objective_names
+    )
+    df_objs.to_csv('final_objectives.csv', index=False)
+
     # Get NFEs to first feasible solution
     first_feasible = runtime.get_first_feasible()
     print(first_feasible)
@@ -80,7 +89,7 @@ def main():
     # obj_plot.to_html("borgRW_objectives_nfes.html")
 
     # Separate parallel coordinates plots for objectives at each NFE
-    nfe_targets = [500, 1000, 1889]
+    nfe_targets = [500, 1000, 1889, 5000]
     nfe_list = runtime.get_NFEs_from_targets(target_list=nfe_targets)
     obj_ranges = runtime.get_objective_ranges()
     for nfe in nfe_list:
@@ -97,7 +106,7 @@ def main():
     # Get snapshots of run at desired frequency (since our runtime has many FEs)
     # Number of intervals is approximate, since Runtime file doesn't have predictable FE intervals (due to restarts etc)
     # This code uses floor division to calculate sampling interval to get close to number of desired intervals
-    n_intervals = 50
+    n_intervals = 200
     snaps = runtime.get_snapshots(n_intervals)
     objs = snaps['Objectives']
     HV = snaps['Hypervolume']
@@ -144,11 +153,11 @@ def main():
     fig.savefig("borgRW_improvements.jpg")
 
     # Objectives parallel coordinates plot (final archive)
-    obj_ranges = [[0, 100], [8600000, 9260000], [0, 17.5], [-14300000, -8300000], [0, 50], [760000, 1130000],
-                  [1250000, 2400000], [700000, 2400000]]
-    nfe = runtime.get_NFEs_from_targets(target_list=[1889])
-    obj_plot = runtime.plot_objectives_parcoord(obj_ranges=obj_ranges, nfe=nfe[0])
-    obj_plot.to_html("borgRW_objectives.html")
+    #obj_ranges = [[0, 100], [8600000, 9260000], [0, 17.5], [-14300000, -8300000], [0, 50], [760000, 1130000],
+    #              [1250000, 2400000], [700000, 2400000]]
+    #nfe = runtime.get_NFEs_from_targets(target_list=[5000])
+    #obj_plot = runtime.plot_objectives_parcoord(obj_ranges=obj_ranges, nfe=nfe[0])
+    #obj_plot.to_html("borgRW_objectives.html")
 
     # Decisions parallel coordinates plot (final archive)
     mead_plot, powell_plot = runtime.plot_decisions_parcoord()
