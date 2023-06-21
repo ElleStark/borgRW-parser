@@ -3,6 +3,7 @@ Runs must all have the same decision variables and objectives"""
 import pandas as pd
 
 import borg_parser
+import hiplot as hip
 import pygmo
 import pandas as pd
 import seaborn as sns
@@ -12,7 +13,8 @@ def main():
     # Runtime path dictionary. keys are run names, values are paths to runtime
     runtime_paths = {'No Constraints': 'data/T5_FE2000_NoC_8Traces/RunTime.Parsable.txt',
                      '2 Scaled Constraints': 'data/T4_FE5000_2C_8Traces/RunTime.Parsable.txt',
-                     '4 Unscaled Constraints': 'data/T3_FE20000_allC_8Traces_partial5.31/RunTime.Parsable.txt'}
+                     '4 Unscaled Constraints': 'data/T3_FE20000_allC_8Traces_partial5.31/RunTime.Parsable.txt',
+                     '4 Constraints on Max': 'data/T6_FE5000_MaxC_AveObj_8Traces/RunTime.Parsable.txt'}
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -138,6 +140,64 @@ def main():
         plt.xlabel('Function Evaluations')
         ax.set_xlim(100, 5000)
         fig.show()
+
+    # Create dataframe of objectives on max trace at ~5kFE for comparing policy sets
+    # Add archive of objectives for 2 constraints, 4 constraints at ~5k FE
+    rt = runtime_dict['2 Scaled Constraints']
+    nfe = rt.nfe[-1]
+    df_objs = pd.DataFrame(
+        rt.archive_objectives[nfe],
+        columns=objective_names
+    )
+    df_objs['Run'] = '2C_scaled'
+
+    # for 4 constraints run, FE 5319 is closest actual FE to 5000 due to restart
+    rt = runtime_dict['4 Unscaled Constraints']
+    nfe = 5319
+    obj_4c_df = pd.DataFrame(
+        rt.archive_objectives[nfe],
+        columns=objective_names
+    )
+    obj_4c_df['Run'] = '4C_unscaled'
+
+    df_objs = pd.concat([df_objs, obj_4c_df], ignore_index=True)
+
+    # Add METRICS at final archive for '4 constraints on max' run at 5k FE - to compare to above objectives
+    obj_maxC_df = pd.read_csv('src/borg_parser/data/T6_FE5000_MaxC_AveObj_8Traces/metrics_max.csv')
+    # 68 policies in final archive:
+    obj_maxC_df = obj_maxC_df.tail(68)
+    obj_maxC_df['Run'] = '4C_onMax'
+    df_objs = pd.concat([df_objs, obj_maxC_df], ignore_index=True)
+
+    ndf, dl, dc, ndl = pygmo.fast_non_dominated_sorting(df_objs.loc[:, df_objs.columns != 'Run'])
+    print(ndf[0])
+
+    # Maybe next, impose constraints and see which policies & sets remain
+    nondom_df = df_objs.loc[ndf[0], :]
+
+    # First, plot all on the same parcoords plot
+    col_names = objective_names
+    col_names.append('Run')
+    cols = col_names
+    cols.reverse()
+    color_col = 'Run'
+    exp = hip.Experiment.from_dataframe(nondom_df)
+    exp.parameters_definition[color_col].colormap = 'interpolateViridis'
+    exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
+    exp.display_data(hip.Displays.PARALLEL_PLOT).update(
+        {'order': cols,
+         'hide': ['uid', 'from_uid']}
+    )
+    exp.display_data(hip.Displays.TABLE).update(
+        {'hide': ['uid', 'from_uid']}
+    )
+
+    exp.to_html('ConstraintsTests_nondom.html')
+
+    # Then, do a nondominated sort. Are any runs completely dominated?
+
+
+
 
 if __name__ == '__main__':
         main()
