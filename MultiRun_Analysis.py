@@ -1,6 +1,5 @@
 """Script to compare multiple runs with different constraints.
 Runs must all have the same decision variables and objectives"""
-import pandas as pd
 
 import borg_parser
 import hiplot as hip
@@ -61,9 +60,25 @@ def main():
         "Max.LB.Short", "Max.Delta.Short",
         ]
 
+    long_objective_names = [
+        'Objectives.Objective_Powell_3490',
+        'Objectives.Objective_Powell_WY_Release',
+        'Objectives.Objective_Lee_Ferry_Deficit',
+        'Objectives.Objective_Avg_Combo_Storage',
+        'Objectives.Objective_Mead_1000',
+        'Objectives.Objective_LB_Shortage_Volume',
+        'Objectives.Objective_Max_Annual_LB_Shortage',
+        'Objectives.Objective_Max_Delta_Annual_Shortage'
+        ]
+
     metric_names = []
 
     constraint_names = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8']
+
+    n_decisions = len(decision_names)
+    n_objectives = len(objective_names)
+    n_metrics = len(metric_names)
+    n_constraints = len(constraint_names)
 
     # Create dictionary of runtime objects for all runs
     runtime_dict = {}
@@ -73,10 +88,10 @@ def main():
         # Create runtime object
         runtime = borg_parser.BorgRuntimeDiagnostic(
                 path_to_runtime,
-                n_decisions=len(decision_names),
-                n_objectives=len(objective_names),
-                n_metrics=len(metric_names),
-                n_constraints=len(constraint_names)
+                n_decisions=n_decisions,
+                n_objectives=n_objectives,
+                n_metrics=n_metrics,
+                n_constraints=n_constraints
         )
         runtime.set_decision_names(decision_names)
         runtime.set_objective_names(objective_names)
@@ -84,6 +99,42 @@ def main():
         runtime.set_constraint_names(constraint_names)
 
         runtime_dict[name] = runtime
+
+    # Convert archive_objectives for '4 Constraints on Max' run to metrics so that we can compare to other runs
+    obj_maxC_df = pd.read_csv('src/borg_parser/data/T6_FE5000_MaxC_AveObj_8Traces/metrics_max.csv')
+
+    # Look up max obj metrics for archive objectives at each NFE (AllValues file doesn't include archive at each FE)
+    all_vals = pd.read_table('src/borg_parser/data/T6_FE5000_MaxC_AveObj_8Traces/AllValues.txt', delimiter=' ')
+    all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
+
+    rt_max = runtime_dict['4 Constraints on Max']
+    objs_max = {}
+    # start_idx = 0
+    allval_metric_names = all_vals.columns[-8:]
+
+    for nfe, objs in rt_max.archive_objectives.items():
+        # lookup each row in objs and take metric vals
+        max_list = [] # list of lists of objectives for archive at a given NFE
+        for obj in objs:
+            # metrics are last columns (order: DVs, objectives, constraints, metrics)
+            #archive_pol = all_vals.iloc[all(all_vals[:, (n_decisions-1):(n_decisions+n_objectives-1)] == obj), -n_metrics:]
+            #obj_as_lists = [list(x) for x in obj]
+            #obj_dict = dict(zip(long_objective_names, obj_as_lists))
+            #print(obj_dict)
+            #truth_df = all_vals_obj.isin(obj)
+            truth_df = all_vals_obj == obj
+            archive_pol = all_vals.loc[truth_df.all(axis=1) == True, :]
+            archive_pol = archive_pol.iloc[0, -n_objectives:]
+            archive_pol = archive_pol.tolist()
+            max_list.append(archive_pol)
+        objs_max[nfe] = max_list
+
+    # Replace archive_objectives for run with max objectives
+    rt_max.archive_objectives = objs_max
+
+    # Replace run dictionary item with updated dictionary for '4 C on max' item
+    runtime_dict['4 Constraints on Max'] = rt_max
+    #print(rt_max.archive_objectives.items())
 
     # Get first feasible for each run
     first_feasible = []
@@ -130,7 +181,7 @@ def main():
         sns.set()
         fig, ax = plt.subplots()
         sns.lineplot(
-            data=metrics_df,
+            data=metrics_df.loc[metrics_df['Run'] == '4 Constraints on Max'],
             x='NFE',
             y=metric,
             ax=ax,
@@ -162,20 +213,18 @@ def main():
 
     df_objs = pd.concat([df_objs, obj_4c_df], ignore_index=True)
 
-    # Add METRICS at final archive for '4 constraints on max' run at 5k FE - to compare to above objectives
-    obj_maxC_df = pd.read_csv('src/borg_parser/data/T6_FE5000_MaxC_AveObj_8Traces/metrics_max.csv')
-    # 68 policies in final archive:
+    68 policies in final archive:
     obj_maxC_df = obj_maxC_df.tail(68)
     obj_maxC_df['Run'] = '4C_onMax'
     df_objs = pd.concat([df_objs, obj_maxC_df], ignore_index=True)
 
+    # Perform non-dominated sorting
     ndf, dl, dc, ndl = pygmo.fast_non_dominated_sorting(df_objs.loc[:, df_objs.columns != 'Run'])
-    print(ndf[0])
 
-    # Maybe next, impose constraints and see which policies & sets remain
+    Maybe next, impose constraints and see which policies & sets remain
     nondom_df = df_objs.loc[ndf[0], :]
 
-    # First, plot all on the same parcoords plot
+    First, plot all on the same parcoords plot
     col_names = objective_names
     col_names.append('Run')
     cols = col_names
@@ -193,10 +242,6 @@ def main():
     )
 
     exp.to_html('ConstraintsTests_nondom.html')
-
-    # Then, do a nondominated sort. Are any runs completely dominated?
-
-
 
 
 if __name__ == '__main__':
