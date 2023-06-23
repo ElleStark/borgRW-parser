@@ -213,18 +213,16 @@ def main():
 
     df_objs = pd.concat([df_objs, obj_4c_df], ignore_index=True)
 
-    68 policies in final archive:
+    # 68 policies in final archive:
     obj_maxC_df = obj_maxC_df.tail(68)
     obj_maxC_df['Run'] = '4C_onMax'
     df_objs = pd.concat([df_objs, obj_maxC_df], ignore_index=True)
 
     # Perform non-dominated sorting
     ndf, dl, dc, ndl = pygmo.fast_non_dominated_sorting(df_objs.loc[:, df_objs.columns != 'Run'])
-
-    Maybe next, impose constraints and see which policies & sets remain
     nondom_df = df_objs.loc[ndf[0], :]
 
-    First, plot all on the same parcoords plot
+    # First, plot all on the same parcoords plot
     col_names = objective_names
     col_names.append('Run')
     cols = col_names
