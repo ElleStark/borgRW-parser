@@ -8,7 +8,7 @@ import pandas as pd
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/T7_FE5000_allC_4obj_8Traces/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/Exp1_FE3600_8Obj_noC/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -49,8 +49,10 @@ def main():
                       ]
 
     objective_names = [
-        "P.3490", "M.1000", "Avg.LB.Short",
-        "Max.Delta.Short"
+        "P.3490", "Powell.WY.Release",
+        "LF.Def", "Avg.Combo.Storage",
+        "M.1000", "Avg.LB.Short",
+        "LB.Max.Short", "Max.Delta.Short"
         ]
 
     metric_names = []
@@ -71,12 +73,12 @@ def main():
     runtime.set_constraint_names(constraint_names)
 
     # Get objective values from final archive as csv
-    nfe = runtime.nfe[-1]
-    df_objs = pd.DataFrame(
-        runtime.archive_objectives[nfe],
-        columns=runtime.objective_names
-    )
-    df_objs.to_csv('final_objectives.csv', index=False)
+    # nfe = runtime.nfe[-1]
+    # df_objs = pd.DataFrame(
+    #     runtime.archive_objectives[nfe],
+    #     columns=runtime.objective_names
+    # )
+    # df_objs.to_csv('final_objectives.csv', index=False)
 
     # Get NFEs to first feasible solution
     first_feasible = runtime.get_first_feasible()
@@ -87,7 +89,7 @@ def main():
     # obj_plot.to_html("borgRW_objectives_nfes.html")
 
     # Separate parallel coordinates plots for objectives at each NFE
-    nfe_targets = [500, 1000, 1889, 3498]
+    nfe_targets = [500, 1000, 2000, 3600]
     nfe_list = runtime.get_NFEs_from_targets(target_list=nfe_targets)
     obj_ranges = runtime.get_objective_ranges()
     for nfe in nfe_list:
@@ -133,7 +135,7 @@ def main():
     # loop through runtime snapshots and plot data
     # capture each with camera
     for i in range(0, len(snaps['NFE'])):
-        visualization_functions.plot_text(text_ax, 'Baseline', 8, snaps, i)
+        visualization_functions.plot_text(text_ax, 'Baseline', len(objective_names), snaps, i)
         visualization_functions.plot_operators(op_ax, snaps, total_NFE, i)
         visualization_functions.plot_metric(HV_ax, HV, "Hypervolume", snaps['NFE'], total_NFE, HV[-1], i)
         visualization_functions.plot_paxis(px_ax, objs, i, objective_names)

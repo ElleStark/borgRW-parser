@@ -113,6 +113,8 @@ def plot_paxis(ax, objs, i, obj_names):
     Parameter i: snapshot number
 
     """
+    n_obj = len(obj_names)
+
     for pol in objs[i]:
         ys = pol
         xs = range(len(ys))
@@ -124,9 +126,10 @@ def plot_paxis(ax, objs, i, obj_names):
 
     ax.set_ylabel('Objective val \n $\longleftarrow$ Preference', size=12)
     #ax.set_ylim([0, 2])
-    ax.set_xticks([0, 1, 2, 3])
+    #ax.set_xticks([0, 1, 2, 3, 4, 5, 6, 7])
+    ax.setxticks(range(0, n_obj))
     ax.set_xticklabels(obj_names, fontsize=12)
-    ax.set_xlim([0, 7])
+    ax.set_xlim([0, n_obj])
 
 
 def plot_Radvis(objectives, ax, name):
