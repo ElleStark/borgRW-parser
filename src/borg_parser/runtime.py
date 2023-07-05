@@ -754,7 +754,8 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         color_col = col_names[3] # color by Mead.1000
         exp = hip.Experiment.from_dataframe(df_objs)
         exp.parameters_definition[color_col].colormap = 'interpolateViridis'
-        exp.parameters_definition[col_names[5]].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
+        if 'LF.Def' in self.objective_names:
+            exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
         exp.display_data(hip.Displays.PARALLEL_PLOT).update(
             {'order': cols,
              'hide': ['uid', 'from_uid']}

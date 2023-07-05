@@ -10,8 +10,12 @@ import matplotlib.pyplot as plt
 
 def main():
     # Runtime path dictionary. keys are run names, values are paths to runtime
-    runtime_paths = {'8 Obj No Constraints': 'data/Exp1_FE3600_8Obj_noC/RunTime.Parsable.txt',
-                     '4 Obj No Constraints': 'data/Exp3_FE3600_4Obj_noC/RunTime.Parsable.txt'}
+    runtime_paths = {'8 Obj No Const Avg Obj': 'data/Exp1_FE3600_8Obj_NoC/RunTime.Parsable.txt',
+                     '8 Obj No Const Max Obj': 'data/T5_FE2000_NoC_8Traces/RunTime.Parsable.txt'
+                     }
+
+    allvalues_paths = {'4 Obj No Constraints': 'src/borg_parser/data/Exp3_FE3600_4Obj_noC/AllValues.txt',
+                       '4 Obj 2 Constraints': 'src/borg_parser/data/Exp4_FE3600_4Obj_2C/AllValues.txt'}
 
     decision_names = ["Mead_Surplus_DV Row cat 0",
                       "Mead_Surplus_DV Row cat 1",
@@ -51,27 +55,18 @@ def main():
                       "Powell_Primary_Release_Volume_DV Row cat 4", "Powell_Increment_EQ_DV",
                       ]
 
-    objective_names_dict = {'8 Obj No Constraints': [
+    objective_names_dict = {'8 Obj No Const Avg Obj': [
         "P.3490", "P.WY.Release",
         "LF.Def", "Avg.Combo.Stor",
         "M.1000", "Avg.LB.Short",
         "Max.LB.Short", "Max.Delta.Short",
-        ], '4 Obj No Constraints': [
+        ], '8 Obj No Const Max Obj': [
         "P.3490", "P.WY.Release",
-        "M.1000", "Avg.LB.Short"
+        "LF.Def", "Avg.Combo.Stor",
+        "M.1000", "Avg.LB.Short",
+        "Max.LB.Short", "Max.Delta.Short",
         ]
         }
-
-    long_objective_names = [
-        'Objectives.Objective_Powell_3490',
-        'Objectives.Objective_Powell_WY_Release',
-        'Objectives.Objective_Lee_Ferry_Deficit',
-        'Objectives.Objective_Avg_Combo_Storage',
-        'Objectives.Objective_Mead_1000',
-        'Objectives.Objective_LB_Shortage_Volume',
-        'Objectives.Objective_Max_Annual_LB_Shortage',
-        'Objectives.Objective_Max_Delta_Annual_Shortage'
-        ]
 
     metric_names = []
 
@@ -86,7 +81,7 @@ def main():
         n_metrics = len(metric_names)
         n_constraints = len(constraint_names)
         path_to_runtime = borg_parser.datasets.BorgRW_data(path)
-        #constraint_names = constraint_dict[name]
+
         # Create runtime object
         runtime = borg_parser.BorgRuntimeDiagnostic(
                 path_to_runtime,
@@ -103,7 +98,8 @@ def main():
         # If less than 8 objectives, need to add other objectives to compare sets in full objective space
         if n_objectives < 8:
             # get remaining objectives from metrics tracked during runtime in all values file
-            all_vals = pd.read_table('src/borg_parser/data/Exp3_FE3600_4Obj_noC/AllValues.txt', delimiter=' ')
+            path_to_allvalues = allvalues_paths[name]
+            all_vals = pd.read_table(path_to_allvalues, delimiter=' ')
             all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
 
             full_obj_set = {}
@@ -134,37 +130,32 @@ def main():
         runtime_dict[name] = runtime
 
 ############### Code below for converting from average to max objectives for a run if needed ########################
-    #
-    # # Convert archive_objectives for '4 Constraints on Max' run to metrics so that we can compare to other runs
-    # obj_maxC_df = pd.read_csv('src/borg_parser/data/T6_FE5000_MaxC_AveObj_8Traces/metrics_max.csv')
-    #
-    # # Look up max obj metrics for archive objectives at each NFE (AllValues file doesn't include archive at each FE)
-    # all_vals = pd.read_table('src/borg_parser/data/T6_FE5000_MaxC_AveObj_8Traces/AllValues.txt', delimiter=' ')
-    # all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
-    #
-    # rt_max = runtime_dict['4 Constraints on Max']
-    # objs_max = {}
-    # # start_idx = 0
-    # allval_metric_names = all_vals.columns[-8:]
-    #
-    # # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
-    # for nfe, objs in rt_max.archive_objectives.items():
-    #     # lookup each row in objs and take metric vals
-    #     max_list = [] # list of lists of objectives for archive at a given NFE
-    #     for obj in objs:
-    #         # metrics are last columns (order: DVs, objectives, constraints, metrics)
-    #         truth_df = all_vals_obj == obj
-    #         archive_pol = all_vals.loc[truth_df.all(axis=1) == True, :]
-    #         archive_pol = archive_pol.iloc[0, -n_objectives:]
-    #         archive_pol = archive_pol.tolist()
-    #         max_list.append(archive_pol)
-    #     objs_max[nfe] = max_list
-    #
-    # # Replace archive_objectives for run with max objectives
-    # rt_max.archive_objectives = objs_max
-    #
-    # # Replace run dictionary item with updated dictionary for '4 C on max' item
-    # runtime_dict['4 Constraints on Max'] = rt_max
+
+    # Look up max obj metrics for archive objectives at each NFE (AllValues file doesn't include archive at each FE)
+    all_vals = pd.read_table('src/borg_parser/data/Exp1_FE3600_8Obj_noC/AllValues.txt', delimiter=' ')
+    all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
+
+    rt_max = runtime_dict['8 Obj No Const Avg Obj']
+    objs_max = {}
+
+    # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
+    for nfe, objs in rt_max.archive_objectives.items():
+        # lookup each row in objs and take metric vals
+        max_list = [] # list of lists of objectives for archive at a given NFE
+        for obj in objs:
+            # metrics are last columns (order: DVs, objectives, constraints, metrics)
+            truth_df = all_vals_obj == obj
+            archive_pol = all_vals.loc[truth_df.all(axis=1) == True, :]
+            archive_pol = archive_pol.iloc[0, -n_objectives:]
+            archive_pol = archive_pol.tolist()
+            max_list.append(archive_pol)
+        objs_max[nfe] = max_list
+
+    # Replace archive_objectives for run with max objectives
+    rt_max.archive_objectives = objs_max
+
+    # Replace run dictionary item with updated dictionary for '4 C on max' item
+    runtime_dict['8 Obj No Const Avg Obj'] = rt_max
 
 ######################### End conversion from average to max objectives #############################################
 
@@ -198,9 +189,11 @@ def main():
 
     for name, run in runtime_dict.items():
         # Create dataframe with final archive objectives
-        nfe = run.nfe[-1]  # final front
-        #nfe = 3600  # partial run results
-        o_temp_df = pd.DataFrame(run.archive_objectives[nfe], columns=objective_names_dict['8 Obj No Constraints'])
+        #nfe = run.nfe[-1]  # final front
+        nfe = 1889  # partial run results
+        while nfe not in run.nfe:
+            nfe += 1
+        o_temp_df = pd.DataFrame(run.archive_objectives[nfe], columns=objective_names_dict['8 Obj No Const Avg Obj'])
         o_temp_df['Run'] = name
         obj_df = pd.concat([obj_df, o_temp_df], ignore_index=True)
 
@@ -230,7 +223,7 @@ def main():
         )
         plt.ylabel(metric)
         plt.xlabel('Function Evaluations')
-        ax.set_xlim(100, 5750)
+        ax.set_xlim(100, 2000)
         fig.show()
 
     # Plot final archive objectives for each run in parallel coordinates
@@ -250,7 +243,7 @@ def main():
         {'hide': ['uid', 'from_uid']}
     )
 
-    exp.to_html('ConstraintsTests_allPolicies.html')
+    exp.to_html('AggTests_allPolicies.html')
 
     # Create dataframe of objectives on max trace at ~5kFE for comparing policy sets
     # # Add archive of objectives for 2 constraints, 4 constraints at ~5k FE
@@ -299,7 +292,7 @@ def main():
         {'hide': ['uid', 'from_uid']}
     )
 
-    exp.to_html('ConstraintsTests_nondominated.html')
+    exp.to_html('AggTest_nondominated.html')
 
 
 if __name__ == '__main__':
