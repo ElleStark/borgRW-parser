@@ -198,7 +198,8 @@ def main():
 
     for name, run in runtime_dict.items():
         # Create dataframe with final archive objectives
-        nfe = run.nfe[-1] # final front
+        nfe = run.nfe[-1]  # final front
+        #nfe = 3600  # partial run results
         o_temp_df = pd.DataFrame(run.archive_objectives[nfe], columns=objective_names_dict['8 Obj No Constraints'])
         o_temp_df['Run'] = name
         obj_df = pd.concat([obj_df, o_temp_df], ignore_index=True)
@@ -229,7 +230,7 @@ def main():
         )
         plt.ylabel(metric)
         plt.xlabel('Function Evaluations')
-        ax.set_xlim(100, 3600)
+        ax.set_xlim(100, 5750)
         fig.show()
 
     # Plot final archive objectives for each run in parallel coordinates
