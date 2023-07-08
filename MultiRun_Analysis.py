@@ -13,7 +13,9 @@ from platypus import *
 def main():
     # Runtime path dictionary. keys are run names, values are paths to runtime
     runtime_paths = {'8 Obj No Const': 'data/Exp1_FE3600_8Obj_noC/RunTime.Parsable.txt',
-                     '8 Obj 2 Const': 'data/Exp2_FE3600_8Obj_2C/RunTime.Parsable.txt'
+                     '8 Obj 2 Const': 'data/Exp2_FE3600_8Obj_2C/RunTime.Parsable.txt',
+                     '4 Obj No Const': 'data/Exp3_FE3600_4Obj_noC/RunTime.Parsable.txt',
+                     '4 Obj 2 Const': 'data/Exp4_FE3600_4Obj_2C/RunTime.Parsable.txt'
                      }
 
     allvalues_paths = {'4 Obj No Const': 'src/borg_parser/data/Exp3_FE3600_4Obj_noC/AllValues.txt',
@@ -61,12 +63,21 @@ def main():
         "P.3490", "P.WY.Release",
         "LF.Def", "Avg.Combo.Stor",
         "M.1000", "Avg.LB.Short",
-        "Max.LB.Short", "Max.Delta.Short",
-        ], '8 Obj 2 Const': [
+        "Max.LB.Short", "Max.Delta.Short"
+        ],
+        '8 Obj 2 Const': [
         "P.3490", "P.WY.Release",
         "LF.Def", "Avg.Combo.Stor",
         "M.1000", "Avg.LB.Short",
-        "Max.LB.Short", "Max.Delta.Short",
+        "Max.LB.Short", "Max.Delta.Short"
+        ],
+        '4 Obj No Const': [
+        "P.3490", "P.WY.Release",
+        "M.1000", "Avg.LB.Short"
+        ],
+        '4 Obj 2 Const': [
+        "P.3490", "P.WY.Release",
+        "M.1000", "Avg.LB.Short"
         ]
         }
 
@@ -171,19 +182,19 @@ def main():
 
     # For reference point, use max of max_nadir for each run
     # Also calculate minimum of min_ideal for extreme point changes
-    max_list = []
-    min_list = []
-    for run in runtime_dict.values():
-        run.compute_real_nadir()
-        run.compute_real_ideal()
-        max = run.max_nadir
-        max_list.append(max)
-        min = run.min_ideal
-        min_list.append(min)
-
-    hv = pygmo.hypervolume(max_list)
-    refpoint = hv.refpoint()
-    ideal_pt = pygmo.ideal(min_list)
+    # max_list = []
+    # min_list = []
+    # for run in runtime_dict.values():
+    #     run.compute_real_nadir()
+    #     run.compute_real_ideal()
+    #     max = run.max_nadir
+    #     max_list.append(max)
+    #     min = run.min_ideal
+    #     min_list.append(min)
+    #
+    # hv = pygmo.hypervolume(max_list)
+    # refpoint = hv.refpoint()
+    # ideal_pt = pygmo.ideal(min_list)
 
     # Create two dataframes, one for final archive objectives and one for runtime metrics
     metrics_df = pd.DataFrame()
@@ -205,34 +216,34 @@ def main():
         o_temp_df['Run'] = name
         obj_df = pd.concat([obj_df, o_temp_df], ignore_index=True)
 
-    #     # Create dataframe with hypervolume, improvements, extreme point changes
-    #     run.compute_hypervolume(reference_point=refpoint)
-    #     run.compute_extreme_pt_changes(tau_ideal=ideal_pt, tau_nadir=refpoint)
-    #     temp_df = pd.DataFrame()
-    #     temp_df['Hypervolume'] = pd.Series(run.hypervolume)
-    #     temp_df['Improvements'] = pd.Series(run.improvements)
-    #     temp_df['Ideal_Change'] = pd.Series(run.ideal_change)
-    #     temp_df['Nadir_Change'] = pd.Series(run.nadir_change)
-    #     temp_df['NFE'] = temp_df.index
-    #     temp_df['Run'] = name
-    #     metrics_df = pd.concat([metrics_df, temp_df], ignore_index=True)
-    #
-    # # Plot Metrics for each run
-    # metric_list = ['Hypervolume', 'Improvements', 'Ideal_Change', 'Nadir_Change']
-    # for metric in metric_list:
-    #     sns.set()
-    #     fig, ax = plt.subplots()
-    #     sns.lineplot(
-    #         data=metrics_df,
-    #         x='NFE',
-    #         y=metric,
-    #         ax=ax,
-    #         hue='Run'
-    #     )
-    #     plt.ylabel(metric)
-    #     plt.xlabel('Function Evaluations')
-    #     ax.set_xlim(100, 3600)
-    #     fig.show()
+        # Create dataframe with hypervolume, improvements, extreme point changes
+        run.compute_hypervolume(reference_point=refpoint)
+        run.compute_extreme_pt_changes(tau_ideal=ideal_pt, tau_nadir=refpoint)
+        temp_df = pd.DataFrame()
+        temp_df['Hypervolume'] = pd.Series(run.hypervolume)
+        temp_df['Improvements'] = pd.Series(run.improvements)
+        temp_df['Ideal_Change'] = pd.Series(run.ideal_change)
+        temp_df['Nadir_Change'] = pd.Series(run.nadir_change)
+        temp_df['NFE'] = temp_df.index
+        temp_df['Run'] = name
+        metrics_df = pd.concat([metrics_df, temp_df], ignore_index=True)
+
+    # Plot Metrics for each run
+    metric_list = ['Hypervolume', 'Improvements', 'Ideal_Change', 'Nadir_Change']
+    for metric in metric_list:
+        sns.set()
+        fig, ax = plt.subplots()
+        sns.lineplot(
+            data=metrics_df,
+            x='NFE',
+            y=metric,
+            ax=ax,
+            hue='Run'
+        )
+        plt.ylabel(metric)
+        plt.xlabel('Function Evaluations')
+        ax.set_xlim(100, 3600)
+        fig.show()
 
     # Plot final archive objectives for each run in parallel coordinates
     col_names = obj_names.copy()
@@ -260,8 +271,9 @@ def main():
     # Perform epsilon non-dominated sorting. From code developed by J. Kasprzyk.
     # See linked notebook below for additional details and documentation
     # https://colab.research.google.com/drive/1fpMQoU4yZSrk71s-RUgAayKeNXEHpGeo?usp=sharing
-    epsilons = [5, 100000, 5, 100000, 5, 100000, 1000000, 1000000]
-    problem = Problem(nvars=0, nobjs=n_objectives, nconstrs=0)
+    epsilons = [5, 100000, 5, 100000, 5, 100000, 100000, 100000]
+    num_obj = 8
+    problem = Problem(nvars=0, nobjs=num_obj, nconstrs=0)
     all_solutions_df = obj_df
     all_solutions_df['Eps Nd'] = False
 
@@ -276,7 +288,7 @@ def main():
         # for cross-referencing things later!
         solution.id = index
 
-        for j in range(n_objectives):
+        for j in range(num_obj):
             solution.objectives[j] = row[obj_names[j]]
         # calling the 'add' function on an EpsilonBoxArchive
         # orchestrates the archive update algorithm: it only
