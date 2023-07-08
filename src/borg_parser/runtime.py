@@ -562,7 +562,7 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return fig
 
-    def plot_hypervolume(self, reference_point=None):
+    def plot_hypervolume(self, reference_point=None, xmax=None, ymax=None):
         """
         Plot hypervolume over the search
         Parameters
@@ -592,6 +592,10 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         )
         plt.ylabel('Hypervolume')
         plt.xlabel('Function Evaluations')
+        if xmax is not None:
+            ax.set_xlim(xmax=xmax)
+        if ymax is not None:
+            ax.set_ylim(ymax=ymax)
 
         return fig
 
