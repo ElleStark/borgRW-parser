@@ -308,8 +308,8 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.normalize_archive_objectives()
 
         # Compute relevant metrics
-        #reference = [100, 10000000, 100, 0, 100, 2400000, 2400000, 2400000]
-        self.compute_hypervolume()
+        reference = [100, 10000000, 100, 2400000]
+        self.compute_hypervolume(reference_point=reference)
         hypervolume = np.zeros(n)
 
         i = 0
@@ -758,8 +758,8 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         color_col = col_names[3] # color by Mead.1000
         exp = hip.Experiment.from_dataframe(df_objs)
         exp.parameters_definition[color_col].colormap = 'interpolateViridis'
-        if 'LF.Def' in self.objective_names:
-            exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
+        if 'Metric.LF.Def' in self.objective_names:
+            exp.parameters_definition['Metric.LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
         exp.display_data(hip.Displays.PARALLEL_PLOT).update(
             {'order': cols,
              'hide': ['uid', 'from_uid']}

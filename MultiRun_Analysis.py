@@ -142,33 +142,120 @@ def main():
 
         runtime_dict[name] = runtime
 
+##########DELETE AFTER 7/11 PLOTTING #################
+    obj_df = pd.DataFrame()
+    obj_names = [
+        "P.3490", "P.WY.Release",
+        "LF.Def", "Avg.Combo.Stor",
+        "M.1000", "Avg.LB.Short",
+        "Max.LB.Short", "Max.Delta.Short",
+        ]
+
+    for name, run in runtime_dict.items():
+        # Create dataframe with final archive objectives
+        nfe = run.nfe[-1]  # final front
+        #nfe = 1889  # partial run results
+        #while nfe not in run.nfe:
+        #    nfe += 1
+        o_temp_df = pd.DataFrame(run.archive_objectives[nfe], columns=obj_names)
+        o_temp_df['Run'] = name
+        obj_df = pd.concat([obj_df, o_temp_df], ignore_index=True)
+    # Plot UNFILTERED final archive objectives for each run in parallel coordinates
+    # With defined axes ranges to compare with filtered version
+    obj_ranges = [["P.3490",0,100], ["P.WY.Release", 7835000, 8875000],
+        ["LF.Def",0,35], ["Avg.Combo.Stor",-30000000, -9000000],
+        ["M.1000",0,100], ["Avg.LB.Short",275000, 1600000],
+        ["Max.LB.Short", 100000, 2400000], ["Max.Delta.Short", 12500, 2400000]]
+
+    col_names = obj_names.copy()
+    col_names.append('Run')
+    cols = col_names
+    cols.reverse()
+    color_col = 'Run'
+    exp = hip.Experiment.from_dataframe(obj_df)
+    exp.parameters_definition[color_col].colormap = 'interpolateViridis'
+    exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
+    exp.display_data(hip.Displays.PARALLEL_PLOT).update(
+        {'order': cols,
+         'hide': ['uid', 'from_uid']}
+    )
+    exp.display_data(hip.Displays.TABLE).update(
+        {'hide': ['uid', 'from_uid']}
+    )
+    for name, low, high in obj_ranges:
+        exp.parameters_definition[name].force_range(low, high)
+
+    exp.to_html('ConstraintTests_unfiltered_allPolicies.html')
+########### END DELETE ######################
+
+
 ############### Code below for converting from average to max objectives for a run if needed ########################
 
-    # # Look up max obj metrics for archive objectives at each NFE (AllValues file doesn't include archive at each FE)
-    # all_vals = pd.read_table('src/borg_parser/data/Exp1_FE3600_8Obj_noC/AllValues.txt', delimiter=' ')
-    # all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
-    #
-    # rt_max = runtime_dict['8 Obj No Const Avg Obj']
-    # objs_max = {}
-    #
-    # # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
-    # for nfe, objs in rt_max.archive_objectives.items():
-    #     # lookup each row in objs and take metric vals
-    #     max_list = [] # list of lists of objectives for archive at a given NFE
-    #     for obj in objs:
-    #         # metrics are last columns (order: DVs, objectives, constraints, metrics)
-    #         truth_df = all_vals_obj == obj
-    #         archive_pol = all_vals.loc[truth_df.all(axis=1) == True, :]
-    #         archive_pol = archive_pol.iloc[0, -n_objectives:]
-    #         archive_pol = archive_pol.tolist()
-    #         max_list.append(archive_pol)
-    #     objs_max[nfe] = max_list
-    #
-    # # Replace archive_objectives for run with max objectives
-    # rt_max.archive_objectives = objs_max
-    #
-    # # Replace run dictionary item with updated dictionary for '4 C on max' item
-    # runtime_dict['8 Obj No Const Avg Obj'] = rt_max
+    # Dictionary of runs that need a filter on the archive to mimic constraints
+    # With its associated path to the all values file
+    runs_to_constrain = {'8 Obj No Const': 'src/borg_parser/data/Exp1_FE3600_8Obj_noC/AllValues.txt',
+                         '4 Obj No Const': 'src/borg_parser/data/Exp3_FE3600_4Obj_noC/AllValues.txt'}
+
+    obj_labels = {'8 Obj No Const': ["Objectives.Objective_Powell_3490", "Objectives.Objective_Powell_WY_Release",
+                   "Objectives.Objective_Lee_Ferry_Deficit", "Objectives.Objective_Avg_Combo_Storage",
+                   "Objectives.Objective_Mead_1000", "Objectives.Objective_LB_Shortage_Volume",
+                   "Objectives.Objective_Max_Annual_LB_Shortage", "Objectives.Objective_Max_Delta_Annual_Shortage"],
+                  '4 Obj No Const': ["Objectives.Objective_Powell_3490",
+                    "Objectives.Objective_Powell_WY_Release",
+                    "Metrics.Objective_Lee_Ferry_Deficit_Avg",
+                    "Metrics.Objective_Avg_Combo_Storage_Avg",
+                    "Objectives.Objective_Mead_1000",
+                    "Objectives.Objective_LB_Shortage_Volume",
+                    "Metrics.Objective_Max_Annual_LB_Shortage_Avg",
+                    "Metrics.Objective_Max_Delta_Annual_Shortage_Avg"]
+                  }
+
+    max_obj_labels = ["Metrics.Objective_Powell_3490_Max", "Metrics.Objective_Powell_WY_Release_Max",
+                      "Metrics.Objective_Lee_Ferry_Deficit_Max", "Metrics.Objective_Avg_Combo_Storage_Max",
+                      "Metrics.Objective_Mead_1000_Max", "Metrics.Objective_LB_Shortage_Volume_Max",
+                      "Metrics.Objective_Max_Annual_LB_Shortage_Max", "Metrics.Objective_Max_Delta_Annual_Shortage_Max"]
+
+    for name, path in runs_to_constrain.items():
+        # Look up max obj metrics for archive objectives at each NFE (AllValues file doesn't include archive at each FE)
+        all_vals = pd.read_table(path, delimiter=' ')
+        all_vals_obj = all_vals.loc[:, obj_labels[name]]
+
+        rt_max = runtime_dict[name]
+        objs_max = {}
+
+        # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
+        for nfe, objs in rt_max.archive_objectives.items():
+            # lookup each row in objs and take metric vals
+            max_list = [] # list of lists of objectives for archive at a given NFE
+            for obj in objs:
+                # metrics are last columns (order: DVs, objectives, constraints, metrics)
+                truth_df = all_vals_obj == obj
+                archive_pol = all_vals.loc[truth_df.all(axis=1) == True, max_obj_labels]
+                archive_pol = archive_pol.iloc[0, :]
+                archive_pol = archive_pol.tolist()
+                max_list.append(archive_pol)
+            objs_max[nfe] = max_list
+
+        # Replace archive_objectives for run with max objectives
+        # rt_max.archive_objectives = objs_max
+
+        # and/or Filter final archive by constraints on max
+        last_nfe = rt_max.nfe[-1]
+        # In this case, we are filtering by M.1000<30 and P.3490<30 on max trace
+        pols_to_include = []
+        i = 0
+        for objs in objs_max[last_nfe]:
+            if (objs[0] < 30) & (objs[4] < 30):
+                pols_to_include.append(i)
+            i += 1
+        # DON'T DO THIS: This will give max objective values. want to pull indexes, then select from set of avg objs
+        #filtered_archive_objs_max = [x for x in objs_max[last_nfe] if (x[0] < 30) & (x[4] < 30)]
+        archive_objs = rt_max.archive_objectives[last_nfe]
+        filtered_archive_objs = [archive_objs[i] for i in pols_to_include]
+        rt_max.archive_objectives[last_nfe] = filtered_archive_objs
+
+        # Replace run dictionary item with updated dictionary for '4 C on max' item
+        runtime_dict[name] = rt_max
 
 ######################### End conversion from average to max objectives #############################################
 
@@ -216,34 +303,34 @@ def main():
         o_temp_df['Run'] = name
         obj_df = pd.concat([obj_df, o_temp_df], ignore_index=True)
 
-        # Create dataframe with hypervolume, improvements, extreme point changes
-        run.compute_hypervolume(reference_point=refpoint)
-        run.compute_extreme_pt_changes(tau_ideal=ideal_pt, tau_nadir=refpoint)
-        temp_df = pd.DataFrame()
-        temp_df['Hypervolume'] = pd.Series(run.hypervolume)
-        temp_df['Improvements'] = pd.Series(run.improvements)
-        temp_df['Ideal_Change'] = pd.Series(run.ideal_change)
-        temp_df['Nadir_Change'] = pd.Series(run.nadir_change)
-        temp_df['NFE'] = temp_df.index
-        temp_df['Run'] = name
-        metrics_df = pd.concat([metrics_df, temp_df], ignore_index=True)
-
-    # Plot Metrics for each run
-    metric_list = ['Hypervolume', 'Improvements', 'Ideal_Change', 'Nadir_Change']
-    for metric in metric_list:
-        sns.set()
-        fig, ax = plt.subplots()
-        sns.lineplot(
-            data=metrics_df,
-            x='NFE',
-            y=metric,
-            ax=ax,
-            hue='Run'
-        )
-        plt.ylabel(metric)
-        plt.xlabel('Function Evaluations')
-        ax.set_xlim(100, 3600)
-        fig.show()
+    #     # Create dataframe with hypervolume, improvements, extreme point changes
+    #     run.compute_hypervolume(reference_point=refpoint)
+    #     run.compute_extreme_pt_changes(tau_ideal=ideal_pt, tau_nadir=refpoint)
+    #     temp_df = pd.DataFrame()
+    #     temp_df['Hypervolume'] = pd.Series(run.hypervolume)
+    #     temp_df['Improvements'] = pd.Series(run.improvements)
+    #     temp_df['Ideal_Change'] = pd.Series(run.ideal_change)
+    #     temp_df['Nadir_Change'] = pd.Series(run.nadir_change)
+    #     temp_df['NFE'] = temp_df.index
+    #     temp_df['Run'] = name
+    #     metrics_df = pd.concat([metrics_df, temp_df], ignore_index=True)
+    #
+    # # Plot Metrics for each run
+    # metric_list = ['Hypervolume', 'Improvements', 'Ideal_Change', 'Nadir_Change']
+    # for metric in metric_list:
+    #     sns.set()
+    #     fig, ax = plt.subplots()
+    #     sns.lineplot(
+    #         data=metrics_df,
+    #         x='NFE',
+    #         y=metric,
+    #         ax=ax,
+    #         hue='Run'
+    #     )
+    #     plt.ylabel(metric)
+    #     plt.xlabel('Function Evaluations')
+    #     ax.set_xlim(100, 3600)
+    #     fig.show()
 
     # Plot final archive objectives for each run in parallel coordinates
     col_names = obj_names.copy()
@@ -261,6 +348,8 @@ def main():
     exp.display_data(hip.Displays.TABLE).update(
         {'hide': ['uid', 'from_uid']}
     )
+    for name, low, high in obj_ranges:
+        exp.parameters_definition[name].force_range(low, high)
 
     exp.to_html('ConstraintTests_allPolicies.html')
 
@@ -324,6 +413,8 @@ def main():
     exp.display_data(hip.Displays.TABLE).update(
         {'hide': ['uid', 'from_uid']}
     )
+    for name, low, high in obj_ranges:
+        exp.parameters_definition[name].force_range(low, high)
 
     exp.to_html('ConstraintTests_nondominated.html')
 
