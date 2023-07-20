@@ -81,45 +81,45 @@ def main():
     runtime.set_constraint_names(constraint_names)
 
     # If less than 8 objectives, append other objectives (tracked as metrics) to compare sets in full objective space
-    # if len(objective_names) < 8:
-    #     # get remaining objectives from metrics tracked during runtime in all values file
-    #     all_vals = pd.read_table('src/borg_parser/data/Final_runs/CurrentParadigm_seed8_baseline/AllValues.txt', delimiter=' ')
-    #     all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
-    #
-    #     full_obj_set = {}
-    #     # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
-    #     for nfe, objs in runtime.archive_objectives.items():
-    #         # lookup each row in objs and take metric vals for remaining objectives
-    #         obj_list = []  # list of lists of objectives for archive at a given NFE
-    #         for obj in objs:
-    #             # metrics are last columns (order: DVs, objectives, constraints, metrics)
-    #             truth_df = all_vals_obj == obj
-    #             archive_pol = all_vals.loc[truth_df.all(axis=1) == True, ["Objectives.Powell_3490",
-    #                                                                       "Objectives.Powell_WY_Release",
-    #                                                                       "Metrics.Lee_Ferry_Deficit_Avg",
-    #                                                                       "Metrics.Avg_Combo_Storage_Avg",
-    #                                                                       "Objectives.Mead_1000",
-    #                                                                       "Objectives.LB_Shortage_Volume",
-    #                                                                       "Metrics.Max_Annual_LB_Shortage_Avg",
-    #                                                                       "Metrics.Max_Delta_Annual_Shortage_Avg"]]
-    #             archive_pol = archive_pol.iloc[0, :]
-    #             archive_pol = archive_pol.tolist()
-    #             obj_list.append(archive_pol)
-    #         full_obj_set[nfe] = obj_list
-    #
-    #     # Replace archive_objectives with all 8 objectives at each NFE
-    #     runtime.archive_objectives = full_obj_set
-    #     runtime.n_objectives = 8
-    #
-    #     objective_names = [
-    #         "Obj.P.3490", "Obj.Powell.WY.Release",
-    #         "Metric.LF.Def", "Metric.Avg.Combo.Storage",
-    #         "Obj.M.1000", "Obj.Avg.LB.Short",
-    #         "Metric.LB.Max.Short", "Metric.Max.Delta.Short"
-    #     ]
-    #     runtime.set_objective_names(objective_names)
+    if len(objective_names) < 8:
+        # get remaining objectives from metrics tracked during runtime in all values file
+        all_vals = pd.read_table('src/borg_parser/data/Final_runs/CurrentParadigm_seed26_baseline/AllValues.txt', delimiter=' ')
+        all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
 
-    #Get objective values from final archive as csv
+        full_obj_set = {}
+        # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
+        for nfe, objs in runtime.archive_objectives.items():
+            # lookup each row in objs and take metric vals for remaining objectives
+            obj_list = []  # list of lists of objectives for archive at a given NFE
+            for obj in objs:
+                # metrics are last columns (order: DVs, objectives, constraints, metrics)
+                truth_df = all_vals_obj == obj
+                archive_pol = all_vals.loc[truth_df.all(axis=1) == True, ["Objectives.Powell_3490",
+                                                                          "Objectives.Powell_WY_Release",
+                                                                          "Metrics.Lee_Ferry_Deficit_Avg",
+                                                                          "Metrics.Avg_Combo_Storage_Avg",
+                                                                          "Objectives.Mead_1000",
+                                                                          "Objectives.LB_Shortage_Volume",
+                                                                          "Metrics.Max_Annual_LB_Shortage_Avg",
+                                                                          "Metrics.Max_Delta_Annual_Shortage_Avg"]]
+                archive_pol = archive_pol.iloc[0, :]
+                archive_pol = archive_pol.tolist()
+                obj_list.append(archive_pol)
+            full_obj_set[nfe] = obj_list
+
+        # Replace archive_objectives with all 8 objectives at each NFE
+        runtime.archive_objectives = full_obj_set
+        runtime.n_objectives = 8
+
+        objective_names = [
+            "Obj.P.3490", "Obj.Powell.WY.Release",
+            "Metric.LF.Def", "Metric.Avg.Combo.Storage",
+            "Obj.M.1000", "Obj.Avg.LB.Short",
+            "Metric.LB.Max.Short", "Metric.Max.Delta.Short"
+        ]
+        runtime.set_objective_names(objective_names)
+
+    # Get objective values from final archive as csv
     # nfe = runtime.nfe[-1]
     # df_objs = pd.DataFrame(
     #     runtime.archive_objectives[nfe],
@@ -136,7 +136,7 @@ def main():
     # obj_plot.to_html("borgRW_objectives_nfes.html")
 
     # Separate parallel coordinates plots for objectives at each NFE
-    nfe_targets = [2600, 3000, 4000, runtime.nfe[-1]]
+    nfe_targets = [500, 1000, 2000, runtime.nfe[-1]]
     nfe_list = runtime.get_NFEs_from_targets(target_list=nfe_targets)
     obj_ranges = runtime.get_objective_ranges()
     for nfe in nfe_list:

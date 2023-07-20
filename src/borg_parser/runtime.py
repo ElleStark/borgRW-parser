@@ -308,8 +308,8 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
         self.normalize_archive_objectives()
 
         # Compute relevant metrics
-        reference = [100, 10000000, 100, 2400000]
-        self.compute_hypervolume(reference_point=reference)
+        #reference = [100, 10000000, 100, 2400000]
+        self.compute_hypervolume()
         hypervolume = np.zeros(n)
 
         i = 0
