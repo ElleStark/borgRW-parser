@@ -8,7 +8,7 @@ import pandas as pd
 
 def main():
     # Change path name to your desired runtime file to analyze
-    path_to_runtime = borg_parser.datasets.BorgRW_data('data/Final_runs/CurrentParadigm_seed26_baseline/RunTime.Parsable.txt')
+    path_to_runtime = borg_parser.datasets.BorgRW_data('data/Final_runs/CurrentParadigm_seed3_baseline/RunTime.Parsable.txt')
 
     decision_names = ["Mead_Surplus_DV",
                       "Mead_Shortage_e_DV Row 0",
@@ -83,7 +83,7 @@ def main():
     # If less than 8 objectives, append other objectives (tracked as metrics) to compare sets in full objective space
     if len(objective_names) < 8:
         # get remaining objectives from metrics tracked during runtime in all values file
-        all_vals = pd.read_table('src/borg_parser/data/Final_runs/CurrentParadigm_seed26_baseline/AllValues.txt', delimiter=' ')
+        all_vals = pd.read_table('src/borg_parser/data/Final_runs/CurrentParadigm_seed15_baseline/AllValues.txt', delimiter=' ')
         all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
 
         full_obj_set = {}

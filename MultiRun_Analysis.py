@@ -12,14 +12,14 @@ from platypus import *
 
 def main():
     # Runtime path dictionary. keys are run names, values are paths to runtime
-    runtime_paths = {'Seed 8 Orig Eps': 'data/Final_runs/CurrentParadigm_seed8_baseline/RunTime.Parsable.txt',
-                     'Seed 8 Coarse Eps': 'data/Final_runs/CurrentParadigm_seed8_baseline_COARSE/RunTime.Parsable.txt',
-                     'Seed 26 Orig Eps': 'data/Final_runs/CurrentParadigm_seed26_baseline/RunTime.Parsable.txt',
-                     'Seed 26 Coarse Eps': 'data/Final_runs/CurrentParadigm_seed26_baseline_COARSE/RunTime.Parsable.txt'
+    runtime_paths = {'Seed 8 Fine Eps': 'data/Final_runs/CurrentParadigm_seed8_baseline/RunTime.Parsable.txt',
+                     'Seed 3 Fine Eps': 'data/Final_runs/CurrentParadigm_seed3_baseline/RunTime.Parsable.txt',
+                     'Seed 26 Fine Eps': 'data/Final_runs/CurrentParadigm_seed26_baseline/RunTime.Parsable.txt',
+                     'Seed 15 Fine Eps': 'data/Final_runs/CurrentParadigm_seed15_baseline/RunTime.Parsable.txt'
                      }
 
-    #allvalues_paths = {'4 Obj No Const': 'src/borg_parser/data/Exp3_FE3600_4Obj_noC/AllValues.txt',
-    #                   '4 Obj 2 Const': 'src/borg_parser/data/Exp4_FE3600_4Obj_2C/AllValues.txt'}
+    allvalues_paths = {'4 Obj No Const': 'src/borg_parser/data/Exp3_FE3600_4Obj_noC/AllValues.txt',
+                      '4 Obj 2 Const': 'src/borg_parser/data/Exp4_FE3600_4Obj_2C/AllValues.txt'}
 
     decision_names = ["Mead_Surplus_DV",
                       "Mead_Shortage_e_DV Row 0",
@@ -116,38 +116,9 @@ def main():
         runtime.set_metric_names(metric_names)
         runtime.set_constraint_names(constraint_names)
 
-        # If less than 8 objectives, need to add other objectives to compare sets in full objective space
-        # if n_objectives < 8:
-        #     # get remaining objectives from metrics tracked during runtime in all values file
-        #     path_to_allvalues = allvalues_paths[name]
-        #     all_vals = pd.read_table(path_to_allvalues, delimiter=' ')
-        #     all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
-        #     o_names = ["Objectives.Objective_Powell_3490",
-        #             "Objectives.Objective_Powell_WY_Release",
-        #             "Metrics.Objective_Lee_Ferry_Deficit_Avg",
-        #             "Metrics.Objective_Avg_Combo_Storage_Avg",
-        #             "Objectives.Objective_Mead_1000",
-        #             "Objectives.Objective_LB_Shortage_Volume",
-        #             "Metrics.Objective_Max_Annual_LB_Shortage_Avg",
-        #             "Metrics.Objective_Max_Delta_Annual_Shortage_Avg"]
-        #     full_obj_set = {}
-        #     # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
-        #     for nfe, objs in runtime.archive_objectives.items():
-        #         # lookup each row in objs and take metric vals for remaining objectives
-        #         obj_list = []  # list of lists of objectives for archive at a given NFE
-        #         for obj in objs:
-        #             # metrics are last columns (order: DVs, objectives, constraints, metrics)
-        #             truth_df = all_vals_obj == obj
-        #             archive_pol = all_vals.loc[truth_df.all(axis=1) == True, o_names]
-        #             archive_pol = archive_pol.iloc[0, :]
-        #             archive_pol = archive_pol.tolist()
-        #             obj_list.append(archive_pol)
-        #         full_obj_set[nfe] = obj_list
-        #
-        # # Replace archive_objectives with all 8 objectives at each NFE
-        #     runtime.archive_objectives = full_obj_set
-        #     runtime.n_objectives = 8
-        #
+        # If less than 8 objectives, can get metrics from AllValues.txt to compare sets in 8-objective space if desired:
+        # runtime.convert_to_8_objs(name, allvalues_paths, n_decisions, n_objectives) # CHECK ALLVALUES PATHS!
+
         runtime_dict[name] = runtime
 
 ##########CODE TO FILTER POLICIES BY MAX OBJECTIVE VALUE IF DESIRED#################
@@ -318,15 +289,15 @@ def main():
         #while nfe not in run.nfe:
         #    nfe += 1
         o_temp_df = pd.DataFrame(run.archive_objectives[nfe], columns=obj_names)
-        # o_temp_df['Run'] = name
-        if 'Coarse' in name:
-            o_temp_df['Epsilons'] = 'Coarse'
-        else:
-            o_temp_df['Epsilons'] = 'Fine'
-        if '26' in name:
-            o_temp_df['Random Seed'] = '26'
-        else:
-            o_temp_df['Random Seed'] = '8'
+        o_temp_df['Run'] = name
+        # if 'Coarse' in name:
+        #     o_temp_df['Epsilons'] = 'Coarse'
+        # else:
+        #     o_temp_df['Epsilons'] = 'Fine'
+        # if '26' in name:
+        #     o_temp_df['Random Seed'] = '26'
+        # else:
+        #     o_temp_df['Random Seed'] = '8'
         obj_df = pd.concat([obj_df, o_temp_df], ignore_index=True)
 
         # Create dataframe with hypervolume, improvements, extreme point changes
@@ -360,11 +331,12 @@ def main():
 
     # Plot final archive objectives for each run in parallel coordinates
     col_names = obj_names.copy()
-    col_names.append('Epsilons')
-    col_names.append('Random Seed')
+    col_names.append('Run')
+    # col_names.append('Epsilons')
+    # col_names.append('Random Seed')
     cols = col_names
     cols.reverse()
-    color_col = 'Epsilons'
+    color_col = 'M.1000'
     exp = hip.Experiment.from_dataframe(obj_df)
     exp.parameters_definition[color_col].colormap = 'interpolateViridis'
     exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
@@ -426,11 +398,12 @@ def main():
 
     # Plot non-dominated parcoords plot
     col_names = obj_names.copy()
-    col_names.append('Epsilons')
-    col_names.append('Random Seed')
+    col_names.append('Run')
+    # col_names.append('Epsilons')
+    # col_names.append('Random Seed')
     cols = col_names
     cols.reverse()
-    color_col = 'Epsilons'
+    color_col = 'M.1000'
     exp = hip.Experiment.from_dataframe(eps_solutions_df)
     exp.parameters_definition[color_col].colormap = 'interpolateViridis'
     exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical

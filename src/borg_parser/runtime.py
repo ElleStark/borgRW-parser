@@ -530,7 +530,56 @@ class BorgRuntimeDiagnostic(BorgRuntimeUtils):
 
         return obj_ranges
 
-        # List of tuples with (
+    def convert_to_8_objs(self, name, allvalues_paths, n_decisions, n_objectives):
+        """
+        Checks if runtime object has 4 objectives.
+        If runtime objective has 4 objectives, looks up 4 metrics from AllValues file for other objectives,
+        and appends those to runtime.archive_objectives so that all 8 original objectives are included.
+        Use results with caution, keeping in mind which 4 objectives were used for the optimization.
+        Note: column names of objectives and metrics are currently hardcoded in the below code; improve when possible.
+
+        Parameters
+        ----------
+        allvalues_paths
+        n_decisions
+        n_objectives
+
+        Returns
+        -------
+
+        """
+        if n_objectives == 4:
+            # get remaining objectives from metrics tracked during runtime in all values file
+            path_to_allvalues = allvalues_paths[name]
+            all_vals = pd.read_table(path_to_allvalues, delimiter=' ')
+            all_vals_obj = all_vals.iloc[:, n_decisions:(n_decisions + n_objectives)]
+            o_names = ["Objectives.Objective_Powell_3490",
+                    "Objectives.Objective_Powell_WY_Release",
+                    "Metrics.Objective_Lee_Ferry_Deficit_Avg",
+                    "Metrics.Objective_Avg_Combo_Storage_Avg",
+                    "Objectives.Objective_Mead_1000",
+                    "Objectives.Objective_LB_Shortage_Volume",
+                    "Metrics.Objective_Max_Annual_LB_Shortage_Avg",
+                    "Metrics.Objective_Max_Delta_Annual_Shortage_Avg"]
+            full_obj_set = {}
+            # Loop through archive of objectives at each NFE and find corresponding metrics (max across traces)
+            for nfe, objs in self.archive_objectives.items():
+                # lookup each row in objs and take metric vals for remaining objectives
+                obj_list = []  # list of lists of objectives for archive at a given NFE
+                for obj in objs:
+                    # metrics are last columns (order: DVs, objectives, constraints, metrics)
+                    truth_df = all_vals_obj == obj
+                    archive_pol = all_vals.loc[truth_df.all(axis=1) == True, o_names]
+                    archive_pol = archive_pol.iloc[0, :]
+                    archive_pol = archive_pol.tolist()
+                    obj_list.append(archive_pol)
+                full_obj_set[nfe] = obj_list
+
+        # Replace archive_objectives with all 8 objectives at each NFE
+            self.archive_objectives = full_obj_set
+            self.n_objectives = 8
+
+
     def plot_improvements(
         self,
         y_lab='Improvements',
