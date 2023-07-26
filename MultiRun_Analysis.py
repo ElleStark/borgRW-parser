@@ -318,7 +318,15 @@ def main():
         #while nfe not in run.nfe:
         #    nfe += 1
         o_temp_df = pd.DataFrame(run.archive_objectives[nfe], columns=obj_names)
-        o_temp_df['Run'] = name
+        # o_temp_df['Run'] = name
+        if 'Coarse' in name:
+            o_temp_df['Epsilons'] = 'Coarse'
+        else:
+            o_temp_df['Epsilons'] = 'Fine'
+        if '26' in name:
+            o_temp_df['Random Seed'] = '26'
+        else:
+            o_temp_df['Random Seed'] = '8'
         obj_df = pd.concat([obj_df, o_temp_df], ignore_index=True)
 
         # Create dataframe with hypervolume, improvements, extreme point changes
@@ -352,10 +360,11 @@ def main():
 
     # Plot final archive objectives for each run in parallel coordinates
     col_names = obj_names.copy()
-    col_names.append('Run')
+    col_names.append('Epsilons')
+    col_names.append('Random Seed')
     cols = col_names
     cols.reverse()
-    color_col = 'Run'
+    color_col = 'Epsilons'
     exp = hip.Experiment.from_dataframe(obj_df)
     exp.parameters_definition[color_col].colormap = 'interpolateViridis'
     exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
@@ -378,7 +387,7 @@ def main():
     # Perform epsilon non-dominated sorting. From code developed by J. Kasprzyk.
     # See linked notebook below for additional details and documentation
     # https://colab.research.google.com/drive/1fpMQoU4yZSrk71s-RUgAayKeNXEHpGeo?usp=sharing
-    epsilons = [5, 100000, 5, 100000, 5, 100000, 100000, 100000]
+    epsilons = [1, 50000, 1, 50000, 5, 100000, 100000, 100000]
     num_obj = 4
     problem = Problem(nvars=0, nobjs=num_obj, nconstrs=0)
     all_solutions_df = obj_df
@@ -417,10 +426,11 @@ def main():
 
     # Plot non-dominated parcoords plot
     col_names = obj_names.copy()
-    col_names.append('Run')
+    col_names.append('Epsilons')
+    col_names.append('Random Seed')
     cols = col_names
     cols.reverse()
-    color_col = 'Run'
+    color_col = 'Epsilons'
     exp = hip.Experiment.from_dataframe(eps_solutions_df)
     exp.parameters_definition[color_col].colormap = 'interpolateViridis'
     exp.parameters_definition['LF.Def'].type = hip.ValueType.NUMERIC  # LF Def sometimes detected as categorical
