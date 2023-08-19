@@ -12,14 +12,12 @@ from platypus import *
 
 def main():
     # Runtime path dictionary. keys are run names, values are paths to runtime
-    runtime_paths = {'Seed 8 Fine Eps': 'data/Final_runs/CurrentParadigm_seed8_baseline/RunTime.Parsable.txt',
-                     'Seed 3 Fine Eps': 'data/Final_runs/CurrentParadigm_seed3_baseline/RunTime.Parsable.txt',
-                     'Seed 26 Fine Eps': 'data/Final_runs/CurrentParadigm_seed26_baseline/RunTime.Parsable.txt',
-                     'Seed 15 Fine Eps': 'data/Final_runs/CurrentParadigm_seed15_baseline/RunTime.Parsable.txt'
-                     }
+    runtime_paths = {'Seed 8 Min Mead': 'data/Final_runs/CurrentParadigm_seed8_base_minMead/RunTime.Parsable.txt',
+                     'Seed 26 Min Mead': 'data/Final_runs/CurrentParadigm_seed26_base_minMead/RunTime.Parsable.txt',
+                    }
 
-    allvalues_paths = {'4 Obj No Const': 'src/borg_parser/data/Exp3_FE3600_4Obj_noC/AllValues.txt',
-                      '4 Obj 2 Const': 'src/borg_parser/data/Exp4_FE3600_4Obj_2C/AllValues.txt'}
+    allvalues_paths = {'Seed 8 Min Mead': 'C:/Users/elles/Documents/CU_Boulder/Research/Borg_processing_code/borgRW-parser/src/borg_parser/data/Final_runs/CurrentParadigm_seed8_base_minMead/AllValues.txt',
+                      'Seed 26 Min Mead': 'C:/Users/elles/Documents/CU_Boulder/Research/Borg_processing_code/borgRW-parser/src/borg_parser/data/Final_runs/CurrentParadigm_seed26_base_minMead/AllValues.txt'}
 
     decision_names = ["Mead_Surplus_DV",
                       "Mead_Shortage_e_DV Row 0",
@@ -63,27 +61,6 @@ def main():
                       "Powell_Balance_Min_Offset_DV Row 4",
                       ]
 
-    # objective_names_dict = {'8 Obj No Const': [
-    #     "P.3490", "P.WY.Release",
-    #     "LF.Def", "Avg.Combo.Stor",
-    #     "M.1000", "Avg.LB.Short",
-    #     "Max.LB.Short", "Max.Delta.Short"
-    #     ],
-    #     '8 Obj 2 Const': [
-    #     "P.3490", "P.WY.Release",
-    #     "LF.Def", "Avg.Combo.Stor",
-    #     "M.1000", "Avg.LB.Short",
-    #     "Max.LB.Short", "Max.Delta.Short"
-    #     ],
-    #     '4 Obj No Const': [
-    #     "P.3490", "P.WY.Release",
-    #     "M.1000", "Avg.LB.Short"
-    #     ],
-    #     '4 Obj 2 Const': [
-    #     "P.3490", "P.WY.Release",
-    #     "M.1000", "Avg.LB.Short"
-    #     ]
-    #     }
     objective_names = [
         "P.3490", "P.WY.Release",
         "M.1000", "Avg.LB.Short"
@@ -229,8 +206,7 @@ def main():
     #         if (objs[0] < 30) & (objs[4] < 30):
     #             pols_to_include.append(i)
     #         i += 1
-    #     # DON'T DO THIS: This will give max objective values. want to pull indexes, then select from set of avg objs
-    #     #filtered_archive_objs_max = [x for x in objs_max[last_nfe] if (x[0] < 30) & (x[4] < 30)]
+
     #     archive_objs = rt_max.archive_objectives[last_nfe]
     #     filtered_archive_objs = [archive_objs[i] for i in pols_to_include]
     #     rt_max.archive_objectives[last_nfe] = filtered_archive_objs
@@ -331,7 +307,7 @@ def main():
 
     # Plot final archive objectives for each run in parallel coordinates
     col_names = obj_names.copy()
-    col_names.append('Run')
+    # col_names.append('Run')
     # col_names.append('Epsilons')
     # col_names.append('Random Seed')
     cols = col_names
@@ -396,9 +372,14 @@ def main():
     # epsilon non-dominated
     eps_solutions_df = all_solutions_df[all_solutions_df["Eps Nd"]].copy(deep=True)
 
+    # Save epsilon non-dominated set as csv (objective values)
+    head_txt = obj_names + ['Run', 'Eps Nd']
+    #eps_solutions_df.to_csv('C:/Users/elles/Documents/CU_Boulder/Research/Borg_processing_code/borgRW-parser/src/borg_parser/data/outputs/eps_nd_set_objs.csv',
+    #                        header=head_txt, index=None, sep=' ')
+
     # Plot non-dominated parcoords plot
     col_names = obj_names.copy()
-    col_names.append('Run')
+    # col_names.append('Run')
     # col_names.append('Epsilons')
     # col_names.append('Random Seed')
     cols = col_names
@@ -414,10 +395,11 @@ def main():
     exp.display_data(hip.Displays.TABLE).update(
         {'hide': ['uid', 'from_uid']}
     )
-    for name, low, high in obj_ranges:
-        exp.parameters_definition[name].force_range(low, high)
+    #for name, low, high in obj_ranges:
+    #    exp.parameters_definition[name].force_range(low, high)
 
     exp.to_html('Compare_nondominated.html')
+
 
 
 if __name__ == '__main__':
